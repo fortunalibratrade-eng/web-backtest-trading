@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Backtest — Data MT5</title>
+<style>
+  :root{
+    --bg:#0a0d13;
+    --panel:#10141c;
+    --panel-alt:#151a24;
+    --border:#1f2530;
+    --text:#e6e9ef;
+    --muted:#7b8496;
+    --muted-2:#4d5566;
+    --accent:#4f8cff;
+    --accent-dim:#2a3f66;
+    --up:#17c964;
+    --up-dim:#0d3d26;
+    --down:#f5455c;
+    --down-dim:#3d1420;
+    --amber:#ffb020;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100%;}
+
+  /* ---------- TOP BAR ---------- */
+  #topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:0 14px;height:52px;flex:0 0 auto;
+    background:var(--panel);border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.5px;font-size:14px;color:var(--text);}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);}
+  .divider{width:1px;height:26px;background:var(--border);}
+  #symbolInfo{display:flex;align-items:center;gap:10px;font-family:var(--mono);}
+  #symbolInfo .sym{font-weight:700;font-size:15px;}
+  #symbolInfo .tf{font-size:11px;color:var(--muted);background:var(--panel-alt);border:1px solid var(--border);padding:2px 6px;border-radius:4px;}
+  #ohlcLine{display:flex;gap:10px;font-family:var(--mono);font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  #ohlcLine b{color:var(--text);font-weight:600;}
+  #ohlcLine .chg-up{color:var(--up);}
+  #ohlcLine .chg-down{color:var(--down);}
+
+  #tfButtons{display:flex;gap:4px;margin-left:auto;}
+  .tfbtn{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    background:transparent;border:1px solid transparent;padding:6px 10px;border-radius:6px;cursor:pointer;
+  }
+  .tfbtn:hover{background:var(--panel-alt);color:var(--text);}
+  .tfbtn.active{background:var(--accent-dim);color:#bcd3ff;border-color:var(--accent);}
+  .tfbtn.disabled{opacity:.3;cursor:not-allowed;}
+  .tfbtn.disabled:hover{background:transparent;color:var(--muted);}
+
+  #loadBtn{
+    margin-left:10px;background:var(--accent);color:#fff;border:none;padding:8px 14px;
+    border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  #loadBtn:hover{background:#3d78e8;}
+
+  /* ---------- TABS ---------- */
+  #tabsbar{
+    display:flex;align-items:center;gap:2px;padding:6px 10px;flex:0 0 auto;
+    background:var(--bg);border-bottom:1px solid var(--border);
+  }
+  .tab{
+    display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px 6px 0 0;
+    background:var(--panel);border:1px solid var(--border);border-bottom:none;
+    font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;
+  }
+  .tab.active{color:var(--text);background:var(--panel-alt);border-color:var(--accent-dim);box-shadow:inset 0 2px 0 var(--accent);}
+  .tab .close{color:var(--muted-2);font-size:12px;padding:0 2px;}
+  .tab .close:hover{color:var(--down);}
+  #addTab{
+    width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+    border-radius:6px;background:transparent;border:1px dashed var(--border);color:var(--muted);
+    cursor:pointer;font-size:15px;line-height:1;
+  }
+  #addTab:hover{color:var(--accent);border-color:var(--accent);}
+
+  /* ---------- MAIN ---------- */
+  #mainArea{flex:1 1 auto;display:flex;min-height:0;}
+  #chartWrap{flex:1 1 auto;position:relative;background:var(--bg);}
+  #chart{display:block;width:100%;height:100%;cursor:crosshair;}
+
+  #emptyState{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;color:var(--muted);text-align:center;padding:20px;
+  }
+  #emptyState .big{font-size:15px;color:var(--text);font-weight:600;}
+  #emptyState .small{font-size:12px;max-width:340px;line-height:1.6;}
+  #emptyState button{
+    margin-top:6px;background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:6px;
+    font-size:13px;font-weight:600;cursor:pointer;
+  }
+
+  #loadingOverlay{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,13,19,.85);color:var(--text);font-family:var(--mono);font-size:13px;z-index:20;
+  }
+  .hidden{display:none !important;}
+
+  #pickModeBanner{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    background:var(--amber);color:#231800;font-weight:700;font-size:12px;
+    padding:6px 14px;border-radius:20px;z-index:15;box-shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+
+  /* ---------- WATCHLIST ---------- */
+  #watchlist{
+    width:250px;flex:0 0 auto;background:var(--panel);border-left:1px solid var(--border);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  #watchlist .wl-head{
+    padding:12px 14px 8px;font-size:11px;letter-spacing:1px;color:var(--muted);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  #watchlist .wl-head button{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;
+  }
+  #watchlist .wl-head button:hover{color:var(--text);border-color:var(--accent);}
+  #wlList{flex:1;overflow-y:auto;padding:0 8px 12px;}
+  .wl-symbol{margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel-alt);}
+  .wl-symbol-head{
+    padding:9px 10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  }
+  .wl-symbol-head:hover{background:#1a2029;}
+  .wl-symbol-head .name{font-family:var(--mono);font-weight:700;font-size:13px;}
+  .wl-symbol-head .count{font-size:10px;color:var(--muted);}
+  .wl-tfrow{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 10px;}
+  .wl-tf-chip{
+    font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:5px;
+    background:var(--panel);border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  }
+  .wl-tf-chip:hover{border-color:var(--accent);color:var(--text);}
+  .wl-tf-chip.loaded{border-color:var(--accent-dim);color:#bcd3ff;background:var(--accent-dim);}
+
+  /* ---------- REPLAY FOOTER ---------- */
+  #replaybar{
+    flex:0 0 auto;background:var(--panel);border-top:1px solid var(--border);
+    padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .rbtn{
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    width:32px;height:32px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+  .rbtn:hover{border-color:var(--accent);}
+  .rbtn:disabled{opacity:.35;cursor:not-allowed;}
+  #playBtn{background:var(--accent);border-color:var(--accent);width:38px;height:38px;font-size:16px;}
+  #playBtn:hover{background:#3d78e8;}
+  #playBtn.playing{background:var(--down);border-color:var(--down);}
+
+  #pickStartBtn{
+    background:transparent;border:1px solid var(--amber);color:var(--amber);
+    font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;
+  }
+  #pickStartBtn:hover{background:rgba(255,176,32,.12);}
+  #pickStartBtn.active{background:var(--amber);color:#231800;}
+
+  #speedSel{
+    background:var(--panel-alt);color:var(--text);border:1px solid var(--border);border-radius:6px;
+    font-family:var(--mono);font-size:12px;padding:6px 8px;cursor:pointer;
+  }
+
+  /* filmstrip scrubber */
+  #scrubWrap{flex:1 1 260px;min-width:160px;position:relative;height:34px;}
+  #scrubTrack{
+    position:absolute;inset:0;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  }
+  #scrubFill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,var(--accent-dim),rgba(79,140,255,.25));}
+  #scrubHead{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);box-shadow:0 0 6px var(--amber);}
+  #scrubBar{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;}
+
+  #posText{font-family:var(--mono);font-size:12px;color:var(--text);white-space:nowrap;min-width:78px;text-align:right;}
+  #dateText{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;}
+
+  #exitReplayBtn{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    font-family:var(--mono);font-size:11px;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;
+  }
+  #exitReplayBtn:hover{border-color:var(--down);color:var(--down);}
+  #exitReplayBtn:disabled{opacity:.3;cursor:not-allowed;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand"><span class="dot"></span>REPLAY BACKTEST</div>
+    <div class="divider"></div>
+    <div id="symbolInfo">
+      <span class="sym" id="symName">— pilih pair —</span>
+      <span class="tf" id="symTf">—</span>
+    </div>
+    <div id="ohlcLine">
+      <span>O <b id="ohO">-</b></span>
+      <span>H <b id="ohH">-</b></span>
+      <span>L <b id="ohL">-</b></span>
+      <span>C <b id="ohC">-</b></span>
+      <span id="ohChg">-</span>
+    </div>
+    <div id="tfButtons"></div>
+    <button id="loadBtn">📁 Muat Folder Data</button>
+  </header>
+
+  <div id="tabsbar"></div>
+
+  <div id="mainArea">
+    <div id="chartWrap">
+      <canvas id="chart"></canvas>
+      <div id="pickModeBanner" class="hidden">Klik candle di chart untuk mulai replay dari titik itu</div>
+      <div id="emptyState">
+        <div class="big">Belum ada data dimuat</div>
+        <div class="small">Klik "Muat Folder Data" lalu pilih folder <b>data</b> hasil script Python (berisi file JSON per pair &amp; timeframe). Setelah dimuat, pilih pair &amp; timeframe dari Watchlist di kanan.</div>
+        <button id="emptyLoadBtn">📁 Muat Folder Data</button>
+      </div>
+      <div id="loadingOverlay" class="hidden">Memuat data…</div>
+    </div>
+
+    <aside id="watchlist">
+      <div class="wl-head"><span>WATCHLIST</span><button id="clearBtn">Reset</button></div>
+      <div id="wlList"></div>
+    </aside>
+  </div>
+
+  <footer id="replaybar">
+    <button id="pickStartBtn">🎯 Pilih Titik Awal</button>
+    <button class="rbtn" id="stepBackBtn" title="Mundur 1 candle">⏮</button>
+    <button class="rbtn" id="playBtn" title="Play/Pause">▶</button>
+    <button class="rbtn" id="stepFwdBtn" title="Maju 1 candle">⏭</button>
+    <select id="speedSel">
+      <option value="4">1×</option>
+      <option value="2">2×</option>
+      <option value="1" selected>4×</option>
+      <option value="0.5">8×</option>
+      <option value="0.2">16×</option>
+      <option value="0.08">32×</option>
+    </select>
+    <div id="scrubWrap">
+      <div id="scrubTrack"><div id="scrubFill"></div><div id="scrubHead"></div></div>
+      <input type="range" id="scrubBar" min="0" max="1000" value="1000">
+    </div>
+    <span id="posText">0 / 0</span>
+    <span id="dateText">—</span>
+    <button id="exitReplayBtn">Keluar Replay</button>
+  </footer>
+
+</div>
+
+<input type="file" id="folderInput" webkitdirectory directory multiple hidden>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  const library = {};              // library[symbol][timeframe] = {n,time,open,high,low,close,volume,from,to}
+  const TF_ORDER = ["M1","M5","M15","M30","H1","H4","D1","W1"];
+  let screens = [];                // {id, symbol, timeframe, view:{end,count}, replay:{active,index,playing,timer}}
+  let activeScreenId = null;
+  let nextScreenId = 1;
+  let pickMode = false;
+  let hoverIndex = null;           // index under mouse (crosshair)
+  let dragState = null;
+
+  const el = (id) => document.getElementById(id);
+  const chartCanvas = el("chart");
+  const ctx = chartCanvas.getContext("2d");
+
+  const priceFmt = new Intl.NumberFormat("id-ID", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const priceFmtBTC = new Intl.NumberFormat("id-ID", {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  function fmtPrice(v){
+    if (v === undefined || v === null || isNaN(v)) return "-";
+    return v >= 1000 ? priceFmt.format(v) : priceFmt.format(v);
+  }
+
+  /* ============================================================
+     DATE HELPERS (tampil dalam WIB = UTC+7, sesuai script python)
+     ============================================================ */
+  const BULAN_ID = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  function wibParts(unixSeconds){
+    const d = new Date((unixSeconds + 7*3600) * 1000); // shift to WIB, read as UTC fields
+    return {
+      day: d.getUTCDate(),
+      month: d.getUTCMonth(),
+      year: d.getUTCFullYear(),
+      hh: String(d.getUTCHours()).padStart(2,"0"),
+      mm: String(d.getUTCMinutes()).padStart(2,"0"),
+    };
+  }
+  function fmtDateShort(unixSeconds){
+    const p = wibParts(unixSeconds);
+    return `${p.day} ${BULAN_ID[p.month]}, ${p.hh}:${p.mm}`;
+  }
+  function fmtDateFull(unixSeconds){
+    const p = wibParts(unixSeconds);
+    return `${p.day} ${BULAN_ID[p.month]} ${p.year}, ${p.hh}:${p.mm} WIB`;
+  }
+
+  /* ============================================================
+     LOAD DATA (folder picker -> JSON files -> typed arrays)
+     ============================================================ */
+  el("loadBtn").addEventListener("click", () => el("folderInput").click());
+  el("emptyLoadBtn").addEventListener("click", () => el("folderInput").click());
+  el("folderInput").addEventListener("change", handleFiles);
+
+  async function handleFiles(e){
+    // Cari semua file .json di folder yang dipilih, TERMASUK yang ada di
+    // dalam subfolder (misal data/xauusdc-m1/XAUUSDc_M1_JANUARI_2025.json)
+    // webkitdirectory otomatis menyertakan file di subfolder juga.
+    const files = Array.from(e.target.files || [])
+      .filter(f => f.name.toLowerCase().endsWith(".json") && !f.name.startsWith("_"));
+    if (files.length === 0){
+      alert("Tidak ada file .json ditemukan di folder yang dipilih (termasuk di dalam subfolder).");
+      return;
+    }
+    // urutkan biar log rapi & bulan tergabung berurutan (tidak wajib, cuma kosmetik)
+    files.sort((a,b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath));
+
+    el("loadingOverlay").classList.remove("hidden");
+    el("loadingOverlay").textContent = `Memuat 0 / ${files.length} file…`;
+
+    // staging: kumpulkan dulu semua candle mentah per symbol+timeframe
+    // (karena sekarang datanya kepisah per bulan, jadi beberapa file JSON
+    // harus digabung jadi satu deret candle sebelum dipakai chart)
+    const staging = {}; // staging[symbol][timeframe] = [candle, candle, ...]
+
+    let loaded = 0;
+    let gagal = 0;
+    for (const file of files){
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (data && data.symbol && data.timeframe && Array.isArray(data.candles) && data.candles.length > 0){
+          if (!staging[data.symbol]) staging[data.symbol] = {};
+          if (!staging[data.symbol][data.timeframe]) staging[data.symbol][data.timeframe] = [];
+          staging[data.symbol][data.timeframe].push(...data.candles);
+        }
+      }catch(err){
+        gagal++;
+        console.warn("Gagal parse", file.webkitRelativePath || file.name, err);
+      }
+      loaded++;
+      el("loadingOverlay").textContent = `Memuat ${loaded} / ${files.length} file…`;
+      // beri jeda ke UI thread biar tidak freeze total
+      if (loaded % 3 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    if (gagal > 0) console.warn(`${gagal} file gagal dibaca, lihat console untuk detail.`);
+
+    // gabungkan tiap bulan -> urutkan berdasarkan waktu -> simpan sbg typed array
+    el("loadingOverlay").textContent = "Menggabungkan & mengurutkan data…";
+    await new Promise(r => setTimeout(r, 0));
+    for (const sym of Object.keys(staging)){
+      for (const tf of Object.keys(staging[sym])){
+        const merged = staging[sym][tf];
+        merged.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+        // buang duplikat timestamp kalau ada overlap antar file bulan
+        const dedup = [];
+        let lastTs = null;
+        for (const c of merged){
+          if (c.timestamp !== lastTs){ dedup.push(c); lastTs = c.timestamp; }
+        }
+        storeIntoLibrary({ symbol: sym, timeframe: tf, candles: dedup });
+      }
+    }
+
+    el("loadingOverlay").classList.add("hidden");
+    renderWatchlist();
+
+    // kalau belum ada screen sama sekali, buat satu & auto-load data pertama
+    if (screens.length === 0){
+      const firstSymbol = Object.keys(library)[0];
+      addScreen();
+      if (firstSymbol){
+        const firstTf = TF_ORDER.find(tf => library[firstSymbol][tf]) || Object.keys(library[firstSymbol])[0];
+        loadIntoActiveScreen(firstSymbol, firstTf);
+      }
+    }
+    el("emptyState").classList.toggle("hidden", Object.keys(library).length > 0);
+  }
+
+  function storeIntoLibrary(data){
+    const raw = data.candles;
+    const n = raw.length;
+    const time = new Float64Array(n), open = new Float64Array(n), high = new Float64Array(n),
+          low = new Float64Array(n), close = new Float64Array(n), volume = new Float64Array(n);
+    for (let i=0;i<n;i++){
+      const c = raw[i];
+      time[i] = c.timestamp !== undefined ? c.timestamp : Math.floor(new Date(c.time).getTime()/1000);
+      open[i] = c.open; high[i] = c.high; low[i] = c.low; close[i] = c.close; volume[i] = c.volume || 0;
+    }
+    if (!library[data.symbol]) library[data.symbol] = {};
+    library[data.symbol][data.timeframe] = {
+      n, time, open, high, low, close, volume,
+      from: n ? new Date(time[0]*1000).toISOString() : null,
+      to: n ? new Date(time[n-1]*1000).toISOString() : null,
+      count: n
+    };
+  }
+
+  el("clearBtn").addEventListener("click", () => {
+    if (!confirm("Hapus semua data yang sudah dimuat dari memori?")) return;
+    Object.keys(library).forEach(k => delete library[k]);
+    screens = [];
+    activeScreenId = null;
+    renderWatchlist();
+    renderTabs();
+    updateTopbarForActiveScreen();
+    draw();
+    el("emptyState").classList.remove("hidden");
+  });
+
+  /* ============================================================
+     WATCHLIST UI
+     ============================================================ */
+  function renderWatchlist(){
+    const list = el("wlList");
+    list.innerHTML = "";
+    const symbols = Object.keys(library).sort();
+    if (symbols.length === 0){
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:10px;">Belum ada data. Muat folder "data" terlebih dulu.</div>';
+      return;
+    }
+    symbols.forEach(sym => {
+      const wrap = document.createElement("div");
+      wrap.className = "wl-symbol";
+
+      const head = document.createElement("div");
+      head.className = "wl-symbol-head";
+      const tfCount = Object.keys(library[sym]).length;
+      head.innerHTML = `<span class="name">${sym}</span><span class="count">${tfCount} timeframe</span>`;
+      wrap.appendChild(head);
+
+      const row = document.createElement("div");
+      row.className = "wl-tfrow";
+      TF_ORDER.filter(tf => library[sym][tf]).forEach(tf => {
+        const chip = document.createElement("span");
+        chip.className = "wl-tf-chip";
+        const active = getActiveScreen() && getActiveScreen().symbol === sym && getActiveScreen().timeframe === tf;
+        if (active) chip.classList.add("loaded");
+        chip.textContent = tf;
+        chip.title = `${library[sym][tf].count.toLocaleString("id-ID")} candle`;
+        chip.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          loadIntoActiveScreen(sym, tf);
+        });
+        row.appendChild(chip);
+      });
+      wrap.appendChild(row);
+      head.addEventListener("click", () => { row.style.display = row.style.display === "none" ? "flex" : "none"; });
+      list.appendChild(wrap);
+    });
+  }
+
+  /* ============================================================
+     SCREENS / TABS
+     ============================================================ */
+  function addScreen(){
+    const scr = {
+      id: nextScreenId++,
+      symbol: null,
+      timeframe: null,
+      view: { end: 0, count: 140 },
+      replay: { active:false, index:0, playing:false, timer:null }
+    };
+    screens.push(scr);
+    activeScreenId = scr.id;
+    renderTabs();
+    updateTopbarForActiveScreen();
+    draw();
+    return scr;
+  }
+
+  function closeScreen(id){
+    const idx = screens.findIndex(s => s.id === id);
+    if (idx === -1) return;
+    stopPlaying(screens[idx]);
+    screens.splice(idx,1);
+    if (screens.length === 0){
+      addScreen();
+      return;
+    }
+    if (activeScreenId === id) activeScreenId = screens[Math.max(0, idx-1)].id;
+    renderTabs();
+    updateTopbarForActiveScreen();
+    draw();
+  }
+
+  function getActiveScreen(){
+    return screens.find(s => s.id === activeScreenId) || null;
+  }
+
+  function renderTabs(){
+    const bar = el("tabsbar");
+    bar.innerHTML = "";
+    screens.forEach((s, i) => {
+      const tab = document.createElement("div");
+      tab.className = "tab" + (s.id === activeScreenId ? " active" : "");
+      const label = s.symbol ? `${s.symbol.replace(/c$/,"")} · ${s.timeframe}` : `Layar ${i+1}`;
+      tab.innerHTML = `<span>${i+1}</span><span>${label}</span><span class="close">✕</span>`;
+      tab.addEventListener("click", (ev) => {
+        if (ev.target.classList.contains("close")){
+          closeScreen(s.id);
+          return;
+        }
+        activeScreenId = s.id;
+        renderTabs();
+        updateTopbarForActiveScreen();
+        renderWatchlist();
+        draw();
+      });
+      bar.appendChild(tab);
+    });
+    const addBtn = document.createElement("div");
+    addBtn.id = "addTab";
+    addBtn.textContent = "+";
+    addBtn.title = "Tambah layar baru";
+    addBtn.addEventListener("click", addScreen);
+    bar.appendChild(addBtn);
+  }
+
+  function loadIntoActiveScreen(symbol, timeframe){
+    let scr = getActiveScreen();
+    if (!scr) scr = addScreen();
+    if (!library[symbol] || !library[symbol][timeframe]) return;
+    stopPlaying(scr);
+    scr.symbol = symbol;
+    scr.timeframe = timeframe;
+    const n = library[symbol][timeframe].n;
+    scr.view.end = n - 1;
+    scr.view.count = Math.min(140, n);
+    scr.replay.active = false;
+    scr.replay.index = n - 1;
+    renderTabs();
+    updateTopbarForActiveScreen();
+    renderWatchlist();
+    draw();
+  }
+
+  /* ============================================================
+     TIMEFRAME BUTTONS
+     ============================================================ */
+  function renderTfButtons(){
+    const wrap = el("tfButtons");
+    wrap.innerHTML = "";
+    const scr = getActiveScreen();
+    TF_ORDER.forEach(tf => {
+      const btn = document.createElement("button");
+      btn.className = "tfbtn";
+      btn.textContent = tf;
+      const available = scr && scr.symbol && library[scr.symbol] && library[scr.symbol][tf];
+      if (!available) btn.classList.add("disabled");
+      if (scr && scr.timeframe === tf) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        if (!scr || !scr.symbol) return;
+        if (!library[scr.symbol][tf]) return;
+        loadIntoActiveScreen(scr.symbol, tf);
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function updateTopbarForActiveScreen(){
+    const scr = getActiveScreen();
+    el("symName").textContent = scr && scr.symbol ? scr.symbol : "— pilih pair —";
+    el("symTf").textContent = scr && scr.timeframe ? scr.timeframe : "—";
+    renderTfButtons();
+    updateReplayUI();
+  }
+
+  /* ============================================================
+     CHART DRAWING
+     ============================================================ */
+  function resizeCanvas(){
+    const wrap = el("chartWrap");
+    const dpr = window.devicePixelRatio || 1;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    chartCanvas.width = Math.floor(w * dpr);
+    chartCanvas.height = Math.floor(h * dpr);
+    chartCanvas.style.width = w + "px";
+    chartCanvas.style.height = h + "px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    draw();
+  }
+  window.addEventListener("resize", resizeCanvas);
+
+  function getVisibleSlice(scr){
+    const d = library[scr.symbol][scr.timeframe];
+    const lastIdx = scr.replay.active ? scr.replay.index : d.n - 1;
+    const end = Math.min(scr.view.end, lastIdx);
+    const count = Math.max(20, Math.min(scr.view.count, d.n));
+    const start = Math.max(0, end - count + 1);
+    return { d, start, end: Math.min(end, lastIdx) };
+  }
+
+  function draw(){
+    const w = chartCanvas.clientWidth, h = chartCanvas.clientHeight;
+    ctx.clearRect(0,0,w,h);
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol || !library[scr.symbol] || !library[scr.symbol][scr.timeframe]){
+      return;
+    }
+    const { d, start, end } = getVisibleSlice(scr);
+    const count = end - start + 1;
+    if (count <= 0) return;
+
+    const padL = 8, padR = 64, padT = 16, padB = 26;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+    const candleW = plotW / count;
+
+    // price range
+    let lo = Infinity, hi = -Infinity;
+    for (let i=start;i<=end;i++){
+      if (d.low[i] < lo) lo = d.low[i];
+      if (d.high[i] > hi) hi = d.high[i];
+    }
+    if (!isFinite(lo) || !isFinite(hi)) return;
+    const pad = (hi - lo) * 0.08 || 1;
+    lo -= pad; hi += pad;
+    const priceToY = (p) => padT + (hi - p) / (hi - lo) * plotH;
+
+    // grid + price axis
+    ctx.strokeStyle = "#1a2029";
+    ctx.fillStyle = "#5b6577";
+    ctx.font = "11px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
+    ctx.lineWidth = 1;
+    const gridLines = 6;
+    for (let g=0; g<=gridLines; g++){
+      const price = lo + (hi - lo) * g / gridLines;
+      const y = priceToY(price);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(w - padR, y);
+      ctx.stroke();
+      ctx.fillText(fmtPrice(price), w - padR + 8, y + 3);
+    }
+
+    // candles
+    for (let i=start;i<=end;i++){
+      const xCenter = padL + (i - start + 0.5) * candleW;
+      const isUp = d.close[i] >= d.open[i];
+      ctx.strokeStyle = isUp ? "#17c964" : "#f5455c";
+      ctx.fillStyle = isUp ? "#17c964" : "#f5455c";
+
+      // wick
+      ctx.beginPath();
+      ctx.moveTo(xCenter, priceToY(d.high[i]));
+      ctx.lineTo(xCenter, priceToY(d.low[i]));
+      ctx.stroke();
+
+      // body
+      const yOpen = priceToY(d.open[i]);
+      const yClose = priceToY(d.close[i]);
+      const bodyTop = Math.min(yOpen, yClose);
+      const bodyH = Math.max(1, Math.abs(yClose - yOpen));
+      const bw = Math.max(1, candleW * 0.62);
+      ctx.fillRect(xCenter - bw/2, bodyTop, bw, bodyH);
+    }
+
+    // crosshair + hover readout
+    if (hoverIndex !== null && hoverIndex >= start && hoverIndex <= end){
+      const xCenter = padL + (hoverIndex - start + 0.5) * candleW;
+      ctx.strokeStyle = "#3a4356";
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(xCenter,padT); ctx.lineTo(xCenter,h-padB); ctx.stroke();
+      ctx.setLineDash([]);
+      updateOhlcReadout(d, hoverIndex);
+    } else {
+      updateOhlcReadout(d, end);
+    }
+
+    // x-axis time labels (a handful, evenly spaced)
+    ctx.fillStyle = "#5b6577";
+    const labelCount = Math.min(6, count);
+    for (let k=0;k<labelCount;k++){
+      const idx = start + Math.floor((count-1) * k/(labelCount-1 || 1));
+      const x = padL + (idx - start + 0.5) * candleW;
+      ctx.fillText(fmtDateShort(d.time[idx]), Math.min(Math.max(x-26,padL), w-padR-60), h-8);
+    }
+  }
+
+  function updateOhlcReadout(d, idx){
+    if (idx === undefined || idx < 0 || idx >= d.n) return;
+    el("ohO").textContent = fmtPrice(d.open[idx]);
+    el("ohH").textContent = fmtPrice(d.high[idx]);
+    el("ohL").textContent = fmtPrice(d.low[idx]);
+    el("ohC").textContent = fmtPrice(d.close[idx]);
+    const chg = d.close[idx] - d.open[idx];
+    const pct = d.open[idx] !== 0 ? (chg / d.open[idx] * 100) : 0;
+    const chgEl = el("ohChg");
+    chgEl.textContent = (chg>=0?"+":"") + fmtPrice(chg) + " (" + (pct>=0?"+":"") + pct.toFixed(2) + "%)";
+    chgEl.className = chg >= 0 ? "chg-up" : "chg-down";
+  }
+
+  /* ============================================================
+     MOUSE: hover / pan / zoom / pick-start
+     ============================================================ */
+  chartCanvas.addEventListener("mousemove", (e) => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    const d = library[scr.symbol][scr.timeframe];
+    const { start, end } = getVisibleSlice(scr);
+    const count = end - start + 1;
+    const rect = chartCanvas.getBoundingClientRect();
+    const padL = 8, padR = 64;
+    const plotW = rect.width - padL - padR;
+    const candleW = plotW / count;
+    const x = e.clientX - rect.left - padL;
+    let idx = start + Math.floor(x / candleW);
+    idx = Math.max(0, Math.min(d.n - 1, idx));
+    hoverIndex = idx;
+
+    if (dragState){
+      const dx = e.clientX - dragState.startX;
+      const shiftCandles = Math.round(-dx / candleW);
+      scr.view.end = Math.max(scr.view.count-1, Math.min(d.n-1, dragState.startEnd + shiftCandles));
+    }
+    draw();
+  });
+  chartCanvas.addEventListener("mouseleave", () => { hoverIndex = null; draw(); });
+
+  chartCanvas.addEventListener("mousedown", (e) => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+
+    if (pickMode){
+      if (hoverIndex !== null){
+        startReplayAt(scr, hoverIndex);
+        setPickMode(false);
+      }
+      return;
+    }
+    dragState = { startX: e.clientX, startEnd: scr.view.end };
+  });
+  window.addEventListener("mouseup", () => { dragState = null; });
+
+  chartCanvas.addEventListener("wheel", (e) => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    e.preventDefault();
+    const d = library[scr.symbol][scr.timeframe];
+    const factor = e.deltaY > 0 ? 1.15 : 0.87;
+    scr.view.count = Math.max(20, Math.min(d.n, Math.round(scr.view.count * factor)));
+    draw();
+  }, { passive:false });
+
+  /* ============================================================
+     REPLAY CONTROLS
+     ============================================================ */
+  function setPickMode(on){
+    pickMode = on;
+    el("pickStartBtn").classList.toggle("active", on);
+    el("pickModeBanner").classList.toggle("hidden", !on);
+  }
+  el("pickStartBtn").addEventListener("click", () => setPickMode(!pickMode));
+
+  function startReplayAt(scr, idx){
+    stopPlaying(scr);
+    const d = library[scr.symbol][scr.timeframe];
+    scr.replay.active = true;
+    scr.replay.index = Math.max(0, Math.min(d.n - 1, idx));
+    scr.view.end = scr.replay.index;
+    updateReplayUI();
+    draw();
+  }
+
+  function stopPlaying(scr){
+    if (!scr) return;
+    scr.replay.playing = false;
+    if (scr.replay.timer){ clearInterval(scr.replay.timer); scr.replay.timer = null; }
+    el("playBtn").classList.remove("playing");
+    el("playBtn").textContent = "▶";
+  }
+
+  function togglePlay(){
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    if (!scr.replay.active) startReplayAt(scr, Math.max(0, Math.round(library[scr.symbol][scr.timeframe].n * 0.7)));
+    if (scr.replay.playing){
+      stopPlaying(scr);
+      return;
+    }
+    scr.replay.playing = true;
+    el("playBtn").classList.add("playing");
+    el("playBtn").textContent = "⏸";
+    const tick = () => {
+      const d = library[scr.symbol][scr.timeframe];
+      if (scr.replay.index >= d.n - 1){ stopPlaying(scr); return; }
+      scr.replay.index++;
+      scr.view.end = scr.replay.index;
+      updateReplayUI();
+      draw();
+    };
+    const speed = parseFloat(el("speedSel").value);
+    scr.replay.timer = setInterval(tick, Math.max(30, 700 * speed));
+  }
+  el("playBtn").addEventListener("click", togglePlay);
+
+  el("speedSel").addEventListener("change", () => {
+    const scr = getActiveScreen();
+    if (scr && scr.replay.playing){ stopPlaying(scr); togglePlay(); }
+  });
+
+  el("stepBackBtn").addEventListener("click", () => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    stopPlaying(scr);
+    if (!scr.replay.active) startReplayAt(scr, library[scr.symbol][scr.timeframe].n - 1);
+    scr.replay.index = Math.max(0, scr.replay.index - 1);
+    scr.view.end = scr.replay.index;
+    updateReplayUI(); draw();
+  });
+  el("stepFwdBtn").addEventListener("click", () => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    stopPlaying(scr);
+    const d = library[scr.symbol][scr.timeframe];
+    if (!scr.replay.active) startReplayAt(scr, 0);
+    scr.replay.index = Math.min(d.n - 1, scr.replay.index + 1);
+    scr.view.end = scr.replay.index;
+    updateReplayUI(); draw();
+  });
+
+  el("exitReplayBtn").addEventListener("click", () => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    stopPlaying(scr);
+    scr.replay.active = false;
+    scr.view.end = library[scr.symbol][scr.timeframe].n - 1;
+    setPickMode(false);
+    updateReplayUI(); draw();
+  });
+
+  let scrubDragging = false;
+  el("scrubBar").addEventListener("input", (e) => {
+    const scr = getActiveScreen();
+    if (!scr || !scr.symbol) return;
+    stopPlaying(scr);
+    const d = library[scr.symbol][scr.timeframe];
+    const frac = parseInt(e.target.value,10) / 1000;
+    const idx = Math.round(frac * (d.n - 1));
+    if (!scr.replay.active) scr.replay.active = true;
+    scr.replay.index = idx;
+    scr.view.end = idx;
+    updateReplayUI(); draw();
+  });
+
+  function updateReplayUI(){
+    const scr = getActiveScreen();
+    const hasData = scr && scr.symbol && library[scr.symbol] && library[scr.symbol][scr.timeframe];
+    ["stepBackBtn","stepFwdBtn","playBtn","pickStartBtn","exitReplayBtn","speedSel","scrubBar"].forEach(id => {
+      el(id).disabled = !hasData;
+    });
+    if (!hasData){
+      el("posText").textContent = "0 / 0";
+      el("dateText").textContent = "—";
+      el("scrubFill").style.width = "0%";
+      el("scrubHead").style.left = "0%";
+      return;
+    }
+    const d = library[scr.symbol][scr.timeframe];
+    const idx = scr.replay.active ? scr.replay.index : d.n - 1;
+    el("posText").textContent = `${idx+1} / ${d.n}`;
+    el("dateText").textContent = fmtDateFull(d.time[idx]);
+    const frac = d.n > 1 ? idx / (d.n - 1) : 0;
+    el("scrubFill").style.width = (frac*100) + "%";
+    el("scrubHead").style.left = (frac*100) + "%";
+    el("scrubBar").value = Math.round(frac*1000);
+    el("exitReplayBtn").disabled = !scr.replay.active;
+  }
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  function init(){
+    resizeCanvas();
+    renderWatchlist();
+    renderTabs();
+    updateTopbarForActiveScreen();
+    setInterval(() => {
+      const scr = getActiveScreen();
+      if (scr) updateReplayUI();
+    }, 1000);
+  }
+  init();
+
+})();
+</script>
+</body>
+</html>
