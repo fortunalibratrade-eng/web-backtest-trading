@@ -1,0 +1,32 @@
+{
+  "symbol": "BTCUSDc",
+  "timeframe": "W1",
+  "bulan": "AGUSTUS",
+  "tahun": 2026,
+  "count": 2,
+  "from": "2026-08-02T00:00:00Z",
+  "to": "2026-08-09T00:00:00Z",
+  "generated_at": "2026-08-15T19:27:42Z",
+  "candles": [
+    {
+      "time": "2026-08-02T00:00:00Z",
+      "timestamp": 1785628800,
+      "open": 62758.0,
+      "high": 65346.99,
+      "low": 62209.32,
+      "close": 64908.62,
+      "volume": 683886,
+      "spread": 1000
+    },
+    {
+      "time": "2026-08-09T00:00:00Z",
+      "timestamp": 1786233600,
+      "open": 64908.64,
+      "high": 65438.21,
+      "low": 62444.51,
+      "close": 63018.92,
+      "volume": 623382,
+      "spread": 0
+    }
+  ]
+}
