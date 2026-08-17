@@ -66,6 +66,12 @@
     border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
   }
   #loadBtn:hover{background:#3d78e8;}
+  #githubBtn{
+    background:var(--panel-alt);color:var(--text);border:1px solid var(--border);padding:8px 12px;
+    border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  #githubBtn:hover{border-color:var(--accent);}
+  #githubBtn.active{border-color:var(--up);color:#8fe8b4;}
 
   /* ---------- TABS ---------- */
   #tabsbar{
@@ -116,6 +122,32 @@
     background:var(--amber);color:#231800;font-weight:700;font-size:12px;
     padding:6px 14px;border-radius:20px;z-index:15;box-shadow:0 4px 14px rgba(0,0,0,.4);
   }
+
+  /* ---------- GITHUB SOURCE MODAL ---------- */
+  #githubModal.modal-overlay{
+    position:fixed;inset:0;background:rgba(6,8,12,.7);display:flex;align-items:center;justify-content:center;z-index:50;
+  }
+  #githubModal.hidden{display:none !important;}
+  .modal-box{
+    width:360px;max-width:92vw;background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:18px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal-title{font-weight:700;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .modal-box label{display:block;font-size:10px;color:var(--muted);letter-spacing:.6px;margin:10px 0 4px;text-transform:uppercase;}
+  .modal-box input{
+    width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:8px 9px;border-radius:6px;font-family:var(--mono);font-size:12.5px;outline:none;
+  }
+  .modal-box input:focus{border-color:var(--accent);}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .modal-actions button{flex:1;}
+  .modal-actions .mini-btn{margin-top:0;}
+  .modal-actions .place-btn{margin-top:0;}
+  .modal-status{font-size:11px;margin-top:10px;padding:8px 10px;border-radius:6px;display:none;font-family:var(--mono);}
+  .modal-status.show{display:block;}
+  .modal-status.ok{background:var(--up-dim);color:#8fe8b4;border:1px solid var(--up);}
+  .modal-status.err{background:var(--down-dim);color:#ffb3bd;border:1px solid var(--down);}
+  .modal-status.loading{background:var(--panel-alt);color:var(--muted);border:1px solid var(--border);}
 
   /* ---------- WATCHLIST / TRADE SIDEBAR ---------- */
   #watchlist{
@@ -319,6 +351,7 @@
     </div>
     <div id="tfButtons"></div>
     <button id="loadBtn">📁 Muat Folder Data</button>
+    <button id="githubBtn" title="Atur sumber data dari repo GitHub">🐙 Sumber GitHub</button>
     <div id="acctBar">
       <div class="aitem"><span>Balance</span><b id="acctBalance">$0.00</b></div>
       <div class="aitem"><span>Equity</span><b id="acctEquity">$0.00</b></div>
@@ -434,6 +467,25 @@
     <button id="exitReplayBtn">Keluar Replay</button>
   </footer>
 
+</div>
+
+<div id="githubModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">🐙 Sumber Data GitHub</div>
+    <label>Username GitHub</label>
+    <input id="ghUser" placeholder="mis. budi123" autocomplete="off">
+    <label>Nama Repo</label>
+    <input id="ghRepo" placeholder="mis. web-backtest-trading" autocomplete="off">
+    <label>Branch</label>
+    <input id="ghBranch" placeholder="main" value="main" autocomplete="off">
+    <div id="ghStatus" class="modal-status"></div>
+    <div class="modal-actions">
+      <button id="ghClear" class="mini-btn">Hapus Sumber</button>
+      <button id="ghCancel" class="mini-btn">Batal</button>
+      <button id="ghSave" class="place-btn">Simpan &amp; Muat</button>
+    </div>
+    <div class="ticket-hint">Kalau index.html ini kamu deploy lewat <b>GitHub Pages</b> di repo yang sama persis dengan folder data (btcusdc-d1, xauusdc-h1, dst), biasanya kamu <b>tidak perlu</b> isi ini — data otomatis kebaca dari folder sejajar. Isi form ini kalau file dibuka langsung dari komputer (bukan lewat server) atau di-host di tempat lain, sementara data JSON-nya tetap disimpan di GitHub. Repo harus publik.</div>
+  </div>
 </div>
 
 <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
@@ -877,6 +929,105 @@
 
   const BULAN_FULL_UPPER = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI","JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"];
 
+  /* ---------- GitHub raw-content fallback (dipakai kalau fetch relatif "./" gagal,
+     misal file dibuka langsung dari komputer atau di-host di luar GitHub Pages) ---------- */
+  const GITHUB_KEY = "replayBacktestGithubSource";
+  function loadGithubSource(){
+    try{ return JSON.parse(localStorage.getItem(GITHUB_KEY) || "null"); }catch(err){ return null; }
+  }
+  function saveGithubSource(src){
+    try{ localStorage.setItem(GITHUB_KEY, JSON.stringify(src)); }catch(err){ /* ignore */ }
+  }
+  let githubSource = loadGithubSource();
+  function githubRawBase(src){
+    src = src || githubSource;
+    if (!src || !src.user || !src.repo) return null;
+    const branch = src.branch || "main";
+    return `https://raw.githubusercontent.com/${encodeURIComponent(src.user)}/${encodeURIComponent(src.repo)}/${encodeURIComponent(branch)}/`;
+  }
+  function updateGithubBtnState(){
+    el("githubBtn").classList.toggle("active", !!githubSource);
+    el("githubBtn").textContent = githubSource ? `🐙 ${githubSource.repo}` : "🐙 Sumber GitHub";
+  }
+
+  // Candidate base URLs to try, in priority order: same-origin first (works when this
+  // index.html is served via GitHub Pages or a local server from the same folder as the
+  // data), then the configured GitHub raw-content repo as a fallback.
+  function candidateBases(){
+    const bases = [];
+    if (location.protocol !== "file:") bases.push("./");
+    const ghBase = githubRawBase();
+    if (ghBase) bases.push(ghBase);
+    if (bases.length === 0) bases.push("./");
+    return bases;
+  }
+
+  // Figures out ONCE which base actually has data (instead of trying every base for every
+  // one of the ~300 file combinations, which would double every request).
+  async function resolveDataBase(){
+    const bases = candidateBases();
+    for (const base of bases){
+      const idx = await tryFetchJson(base + "_index.json");
+      if (Array.isArray(idx) && idx.length > 0) return { base, index: idx };
+    }
+    const probeSym = AUTO_SYMBOLS[0], probeTf = AUTO_TIMEFRAMES[0];
+    const probeFolder = `${probeSym}-${probeTf}`.toLowerCase();
+    const probeFile = `${probeSym}_${probeTf}_${BULAN_FULL_UPPER[AUTO_START.month-1]}_${AUTO_START.year}.json`;
+    for (const base of bases){
+      const probe = await tryFetchJson(`${base}${probeFolder}/${probeFile}`);
+      if (probe) return { base, index: null };
+    }
+    return { base: bases[0], index: null };
+  }
+
+  el("githubBtn").addEventListener("click", () => {
+    el("ghUser").value = githubSource ? githubSource.user : "";
+    el("ghRepo").value = githubSource ? githubSource.repo : "";
+    el("ghBranch").value = githubSource ? (githubSource.branch || "main") : "main";
+    el("ghStatus").className = "modal-status";
+    el("githubModal").classList.remove("hidden");
+  });
+  el("ghCancel").addEventListener("click", () => el("githubModal").classList.add("hidden"));
+  el("ghClear").addEventListener("click", () => {
+    githubSource = null;
+    saveGithubSource(null);
+    updateGithubBtnState();
+    el("githubModal").classList.add("hidden");
+    autoLoad();
+  });
+  el("ghSave").addEventListener("click", async () => {
+    const user = el("ghUser").value.trim();
+    const repo = el("ghRepo").value.trim();
+    const branch = el("ghBranch").value.trim() || "main";
+    if (!user || !repo){ alert("Isi username dan nama repo GitHub dulu."); return; }
+    const status = el("ghStatus");
+    status.className = "modal-status show loading";
+    status.textContent = "Mengecek repo…";
+    const testSrc = { user, repo, branch };
+    const base = githubRawBase(testSrc);
+    const testUrl = base + "_index.json";
+    let ok = await tryFetchJson(testUrl);
+    if (!ok){
+      // _index.json optional — also accept if the repo itself is reachable at all
+      const probeSym = AUTO_SYMBOLS[0], probeTf = AUTO_TIMEFRAMES[0];
+      const probeFolder = `${probeSym}-${probeTf}`.toLowerCase();
+      const probeFile = `${probeSym}_${probeTf}_${BULAN_FULL_UPPER[AUTO_START.month-1]}_${AUTO_START.year}.json`;
+      ok = await tryFetchJson(`${base}${probeFolder}/${probeFile}`);
+    }
+    githubSource = testSrc;
+    saveGithubSource(githubSource);
+    updateGithubBtnState();
+    if (ok){
+      status.className = "modal-status show ok";
+      status.textContent = "✓ Repo ditemukan, memuat data…";
+    } else {
+      status.className = "modal-status show err";
+      status.textContent = "Repo/branch tidak ditemukan atau bukan repo publik — sumber tetap disimpan, coba periksa nama repo & branch.";
+    }
+    setTimeout(() => { el("githubModal").classList.add("hidden"); }, ok ? 500 : 1800);
+    autoLoad();
+  });
+
   function buildMonthList(){
     const now = new Date();
     const list = [];
@@ -901,15 +1052,17 @@
   async function autoLoad(){
     el("loadingOverlay").classList.remove("hidden");
     el("loadingOverlay").textContent = "Mencoba memuat otomatis…";
+    updateGithubBtnState();
 
     const staging = {};
     let anyFound = false;
 
-    const index = await tryFetchJson("./_index.json");
+    const { base, index } = await resolveDataBase();
+
     if (Array.isArray(index) && index.length > 0){
       let done = 0;
       for (const entry of index){
-        const url = `./${entry.folder}/${entry.file}`;
+        const url = `${base}${entry.folder}/${entry.file}`;
         const data = await tryFetchJson(url);
         done++;
         el("loadingOverlay").textContent = `Memuat ${done} / ${index.length} file (via _index.json)…`;
@@ -935,7 +1088,7 @@
           const folder = `${sym}-${tf}`.toLowerCase();
           const bulanNama = BULAN_FULL_UPPER[mo.month-1];
           const filename = `${sym}_${tf}_${bulanNama}_${mo.year}.json`;
-          const data = await tryFetchJson(`./${folder}/${filename}`);
+          const data = await tryFetchJson(`${base}${folder}/${filename}`);
           return { sym, tf, data };
         }));
         results.forEach(({sym,tf,data}) => {
@@ -947,7 +1100,7 @@
           }
         });
         done += batch.length;
-        el("loadingOverlay").textContent = `Mencari data… (${Math.min(done,combos.length)} / ${combos.length} kombinasi dicoba)`;
+        el("loadingOverlay").textContent = `Mencari data${base.startsWith("http")?" di GitHub":""}… (${Math.min(done,combos.length)} / ${combos.length} kombinasi dicoba)`;
       }
     }
 
@@ -976,6 +1129,9 @@
     } else {
       el("loadingOverlay").classList.add("hidden");
       el("emptyState").classList.remove("hidden");
+      const ghHint = githubSource
+        ? `<br><br>Sumber GitHub kamu saat ini: <b>${githubSource.user}/${githubSource.repo}</b> (branch <b>${githubSource.branch||"main"}</b>) — kalau ini salah, klik "🐙 Sumber GitHub" di pojok kanan atas untuk memperbaikinya. Pastikan repo-nya publik.`
+        : `<br><br>Kalau data JSON kamu disimpan di repo GitHub (bukan di folder yang sama dengan index.html ini), klik tombol <b>"🐙 Sumber GitHub"</b> di pojok kanan atas topbar dan isi username + nama repo-nya.`;
       el("emptyState").innerHTML = `
         <div class="big">Auto-load tidak menemukan data</div>
         <div class="small">
@@ -984,6 +1140,7 @@
           <b>Solusi 2 (auto-load penuh):</b> jalankan lewat server lokal, buka terminal di folder ini lalu ketik:<br>
           <code style="background:var(--panel-alt);padding:2px 6px;border-radius:4px;">python -m http.server 8000</code><br>
           lalu buka <code style="background:var(--panel-alt);padding:2px 6px;border-radius:4px;">http://localhost:8000</code> di browser.
+          ${ghHint}
         </div>
         <button id="emptyLoadBtn2">📁 Muat Folder Data</button>
       `;
@@ -1811,6 +1968,7 @@
     renderWatchlist();
     renderTabs();
     updateTopbarForActiveScreen();
+    updateGithubBtnState();
     refreshTradingUI();
     setInterval(() => {
       const scr = getActiveScreen();
