@@ -36,6 +36,10 @@
     downColor: "#f5455c"
   };
   let ctxMenuTarget = null;        // {drawingId} if the context menu was opened on top of a drawing
+  let drawingsHidden = false;      // toolbar "mata" toggle — sembunyikan semua gambar tanpa menghapusnya
+  let indicatorSettings = {        // indikator chart — nonaktif sampai user aktifkan dari menu Indikator
+    ema20: false, ema50: false, sma50: false, rsi14: false
+  };
 
   const el = (id) => document.getElementById(id);
   const chartCanvas = el("chart");
@@ -59,6 +63,8 @@
     candlestick: '<rect x="4" y="8" width="4" height="8" rx="1"/><path d="M6 4v4M6 16v4"/><rect x="14" y="4" width="4" height="10" rx="1"/><path d="M16 2v2M16 14v2"/>',
     linechart: '<path d="M3 17l5-5 4 4 8-9"/>',
     trash: '<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',
+    eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M3 3l18 18"/><path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a17.7 17.7 0 0 1-3.2 4.1M6.5 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
     cursor: '<path d="M4 3l7 17 2-7 7-2-16-8Z"/>',
     trendline: '<path d="M4 20 20 4"/>',
     hline: '<path d="M4 12h16"/>',
@@ -1493,6 +1499,111 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     requestAnimationFrame(() => { drawScheduled = false; draw(); });
   }
 
+  /* ============================================================
+     INDICATORS — EMA / SMA / RSI. Dihitung sekali per dataset lalu
+     di-cache di objek data (d.__ind), baru dihitung ulang kalau
+     panjang datanya berubah (mis. reload folder data).
+     ============================================================ */
+  function computeEMA(closes, period){
+    const n = closes.length, out = new Array(n).fill(NaN);
+    if (n < period) return out;
+    const k = 2 / (period + 1);
+    let sum = 0;
+    for (let i=0;i<period;i++) sum += closes[i];
+    let prev = sum / period;
+    out[period-1] = prev;
+    for (let i=period;i<n;i++){ prev = closes[i]*k + prev*(1-k); out[i] = prev; }
+    return out;
+  }
+  function computeSMA(closes, period){
+    const n = closes.length, out = new Array(n).fill(NaN);
+    let sum = 0;
+    for (let i=0;i<n;i++){
+      sum += closes[i];
+      if (i >= period) sum -= closes[i-period];
+      if (i >= period-1) out[i] = sum / period;
+    }
+    return out;
+  }
+  function computeRSI(closes, period){
+    const n = closes.length, out = new Array(n).fill(NaN);
+    if (n < period + 1) return out;
+    let gain = 0, loss = 0;
+    for (let i=1;i<=period;i++){
+      const diff = closes[i] - closes[i-1];
+      if (diff >= 0) gain += diff; else loss -= diff;
+    }
+    let avgGain = gain/period, avgLoss = loss/period;
+    out[period] = avgLoss === 0 ? 100 : 100 - (100/(1+avgGain/avgLoss));
+    for (let i=period+1;i<n;i++){
+      const diff = closes[i] - closes[i-1];
+      const g = diff > 0 ? diff : 0, l = diff < 0 ? -diff : 0;
+      avgGain = (avgGain*(period-1) + g) / period;
+      avgLoss = (avgLoss*(period-1) + l) / period;
+      out[i] = avgLoss === 0 ? 100 : 100 - (100/(1+avgGain/avgLoss));
+    }
+    return out;
+  }
+  function getIndicatorSeries(d, key){
+    d.__ind = d.__ind || {};
+    if (d.__ind[key] && d.__ind[key].length === d.n) return d.__ind[key];
+    let arr;
+    if (key === "ema20") arr = computeEMA(d.close, 20);
+    else if (key === "ema50") arr = computeEMA(d.close, 50);
+    else if (key === "sma50") arr = computeSMA(d.close, 50);
+    else if (key === "rsi14") arr = computeRSI(d.close, 14);
+    d.__ind[key] = arr;
+    return arr;
+  }
+  function drawOverlayLine(series, color, start, end, startF, candleW, padL, priceToY){
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    let started = false;
+    for (let i=start;i<=end;i++){
+      const v = series[i];
+      if (v === undefined || v === null || isNaN(v)){ started = false; continue; }
+      const x = padL + (i - startF + 0.5) * candleW;
+      const y = priceToY(v);
+      if (!started){ ctx.moveTo(x,y); started = true; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawRsiPanel(series, start, end, startF, candleW, padL, w, padR, top, bottom){
+    const panelH = bottom - top;
+    const valToY = (v) => top + (100 - v) / 100 * panelH;
+    ctx.save();
+    ctx.fillStyle = "rgba(21,26,36,.55)";
+    ctx.fillRect(padL, top, w - padL - padR, panelH);
+    ctx.strokeStyle = "#1a2029";
+    ctx.lineWidth = 1;
+    [30,50,70].forEach(lvl => {
+      const y = valToY(lvl);
+      ctx.beginPath();
+      ctx.setLineDash(lvl === 50 ? [] : [3,3]);
+      ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#5b6577";
+    ctx.font = "10px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
+    ctx.fillText("RSI 14", padL + 4, top + 11);
+    ctx.strokeStyle = "#c98bff";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    let started = false;
+    for (let i=start;i<=end;i++){
+      const v = series[i];
+      if (v === undefined || v === null || isNaN(v)){ started = false; continue; }
+      const x = padL + (i - startF + 0.5) * candleW;
+      const y = valToY(v);
+      if (!started){ ctx.moveTo(x,y); started = true; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function draw(){
     const w = chartCanvas.clientWidth, h = chartCanvas.clientHeight;
     ctx.clearRect(0,0,w,h);
@@ -1503,7 +1614,10 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     if (!scr || !scr.symbol || !library[scr.symbol] || !library[scr.symbol][scr.timeframe]){
       return;
     }
-    const padL = 8, padR = 68, padT = 16, padB = 26;
+    const padL = 8, padR = 68, padT = 16, padBBase = 26;
+    const rsiActive = !!indicatorSettings.rsi14;
+    const rsiPanelH = 60, rsiGap = 10;
+    const padB = padBBase + (rsiActive ? rsiPanelH + rsiGap : 0);
     const plotW = w - padL - padR;
     const plotH = h - padT - padB;
 
@@ -1615,6 +1729,17 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
         const bw = Math.max(1, candleW * 0.62);
         ctx.fillRect(xCenter - bw/2, bodyTop, bw, bodyH);
       }
+    }
+
+    // indicator overlays (EMA/SMA on the price chart, RSI in its own strip below) —
+    // nonaktif secara default, hanya tergambar kalau diaktifkan lewat menu Indikator
+    if (indicatorSettings.ema20) drawOverlayLine(getIndicatorSeries(d,"ema20"), "#2ea9ff", start, end, startF, candleW, padL, priceToY);
+    if (indicatorSettings.ema50) drawOverlayLine(getIndicatorSeries(d,"ema50"), "#ff9f2e", start, end, startF, candleW, padL, priceToY);
+    if (indicatorSettings.sma50) drawOverlayLine(getIndicatorSeries(d,"sma50"), "#c98bff", start, end, startF, candleW, padL, priceToY);
+    if (rsiActive){
+      const rsiTop = h - padBBase - rsiPanelH;
+      const rsiBottom = h - padBBase - 2;
+      drawRsiPanel(getIndicatorSeries(d,"rsi14"), start, end, startF, candleW, padL, w, padR, rsiTop, rsiBottom);
     }
 
     // live "current price" line — dashed, spans the chart, with a highlighted axis tag
@@ -1893,14 +2018,83 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   document.querySelectorAll(".dtool[data-tool]").forEach(btn => {
     btn.addEventListener("click", () => setDrawTool(btn.dataset.tool));
   });
-  el("clearDrawBtn").addEventListener("click", () => {
-    if (!activeScreenId) return;
-    if (!getDrawings().length) return;
-    if (!confirm("Hapus semua gambar di chart ini?")) return;
+  /* ---------- hide/show all drawings (toolbar "mata") ---------- */
+  el("toggleDrawingsBtn").addEventListener("click", () => {
+    drawingsHidden = !drawingsHidden;
+    el("toggleDrawingsBtn").classList.toggle("active", drawingsHidden);
+    el("toggleDrawingsBtn").title = drawingsHidden ? "Tampilkan semua gambar" : "Sembunyikan / tampilkan semua gambar";
+    const iconSpan = el("toggleDrawingsBtn").querySelector("[data-icon]");
+    iconSpan.setAttribute("data-icon", drawingsHidden ? "eyeoff" : "eye");
+    iconSpan.innerHTML = iconSvg(drawingsHidden ? "eyeoff" : "eye", 15);
+    requestDraw();
+  });
+
+  /* ---------- trash popover: 2 pilihan — Hapus Indikator / Hapus Seluruh Gambar ---------- */
+  el("clearDrawBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const pop = el("clearPopover");
+    const willOpen = pop.classList.contains("hidden");
+    if (willOpen){
+      const hasIndicator = Object.values(indicatorSettings).some(Boolean);
+      const hasDrawings = !!(activeScreenId && getDrawings().length);
+      el("clearIndicatorBtn").disabled = !hasIndicator;
+      el("clearAllDrawingsBtn").disabled = !hasDrawings;
+    }
+    pop.classList.toggle("hidden");
+    el("clearDrawBtn").classList.toggle("active", !pop.classList.contains("hidden"));
+  });
+  document.addEventListener("click", (e) => {
+    const pop = el("clearPopover");
+    if (pop.classList.contains("hidden")) return;
+    if (e.target.closest("#clearPopover") || e.target.closest("#clearDrawBtn")) return;
+    pop.classList.add("hidden");
+    el("clearDrawBtn").classList.remove("active");
+  });
+  el("clearIndicatorBtn").addEventListener("click", () => {
+    if (el("clearIndicatorBtn").disabled) return;
+    indicatorSettings = { ema20:false, ema50:false, sma50:false, rsi14:false };
+    ["indEma20Chk","indEma50Chk","indSma50Chk","indRsi14Chk"].forEach(id => { el(id).checked = false; });
+    updateIndicatorButtonState();
+    requestDraw();
+    el("clearPopover").classList.add("hidden");
+    el("clearDrawBtn").classList.remove("active");
+  });
+  el("clearAllDrawingsBtn").addEventListener("click", () => {
+    if (el("clearAllDrawingsBtn").disabled) return;
+    if (!activeScreenId || !getDrawings().length) return;
     drawings[activeScreenId] = [];
     selectedDrawingId = null;
     requestDraw();
+    el("clearPopover").classList.add("hidden");
+    el("clearDrawBtn").classList.remove("active");
   });
+
+  /* ---------- indicator popover (RSI / EMA / SMA — nonaktif sampai dicentang) ---------- */
+  function updateIndicatorButtonState(){
+    const any = Object.values(indicatorSettings).some(Boolean);
+    el("indicatorToggleBtn").classList.toggle("active", any);
+  }
+  el("indicatorToggleBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    el("indicatorPopover").classList.toggle("hidden");
+  });
+  document.addEventListener("click", (e) => {
+    const pop = el("indicatorPopover");
+    if (pop.classList.contains("hidden")) return;
+    if (e.target.closest("#indicatorPopover") || e.target.closest("#indicatorToggleBtn")) return;
+    pop.classList.add("hidden");
+  });
+  function wireIndicatorChk(id, key){
+    el(id).addEventListener("change", () => {
+      indicatorSettings[key] = el(id).checked;
+      updateIndicatorButtonState();
+      requestDraw();
+    });
+  }
+  wireIndicatorChk("indEma20Chk", "ema20");
+  wireIndicatorChk("indEma50Chk", "ema50");
+  wireIndicatorChk("indSma50Chk", "sma50");
+  wireIndicatorChk("indRsi14Chk", "rsi14");
   el("chartTypeBtn").addEventListener("click", () => {
     chartType = chartType === "candle" ? "line" : "candle";
     el("chartTypeBtn").classList.toggle("active", chartType === "line");
@@ -2030,6 +2224,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
 
   function drawUserDrawings(priceToY, w, h, padL, padR, padT, padB){
     drawingHitboxes = [];
+    if (drawingsHidden) return;
     const list = getDrawings();
     const items = activeDrawingDraft ? [...list, activeDrawingDraft] : list;
     const scrForSpec = getActiveScreen();
@@ -2662,7 +2857,11 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     ["stepBackBtn","stepFwdBtn","playBtn","pickStartBtn","exitReplayBtn","speedSel","scrubBar"].forEach(id => {
       el(id).disabled = !hasData;
     });
+    // jendela replay selalu standby (tampil) selama replay aktif di screen ini, dan
+    // tombol "Replay" di topbar menyala (glow) sepanjang sesi replay berlangsung —
+    // bukan cuma saat mode "pilih titik awal" saja.
     el("replayFloat").classList.toggle("hidden", !hasData || !scr.replay.active);
+    el("replayShortcutBtn").classList.toggle("replay-live", !!(hasData && scr.replay.active));
     if (!hasData){
       el("posText").textContent = "0 / 0";
       el("dateText").textContent = "—";
