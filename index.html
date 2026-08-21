@@ -1,296 +1,318 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Replay Backtest — Data MT5</title>
-<link rel="stylesheet" href="style.css">
-</head>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay Backtest — Data MT5</title>
+  <link rel="stylesheet" href="style.css">
+  </head>
 <body>
-<div id="app">
+  <div id="app">
 
-  <header id="topbar">
-    <div class="brand">AL-HAZA<span class="tm">TM</span></div>
-    <div class="divider"></div>
-    <div id="symbolInfo">
-      <span class="sym" id="symName">— pilih pair —</span>
-      <span class="tf" id="symTf">—</span>
-    </div>
-    <div id="tfButtons"></div>
-
-    <div id="quickOrder">
-      <input type="number" id="volInput" class="qv-input" step="0.01" min="0.01" value="0.10" title="Volume (lot)">
-      <button id="sellBtn" class="qorder sell">SELL<span id="sellPrice">-</span></button>
-      <button id="buyBtn" class="qorder buy">BUY<span id="buyPrice">-</span></button>
-      <div class="pending-wrap">
-        <button id="pendingToggleBtn" class="qorder pend">PENDING</button>
-        <div id="pendingPopover" class="popover hidden">
-          <label>Tipe Order</label>
-          <select id="pendingType">
-            <option value="buy_limit">Buy Limit</option>
-            <option value="sell_limit">Sell Limit</option>
-            <option value="buy_stop">Buy Stop</option>
-            <option value="sell_stop">Sell Stop</option>
-          </select>
-          <label>Harga Order</label>
-          <div class="price-pick-row">
-            <input type="number" id="pendingPrice" placeholder="mis. 2350.00" step="any">
-            <button id="pickPriceBtn" title="Klik chart untuk isi harga otomatis"><span data-icon="target"></span></button>
-          </div>
-          <button id="placePendingBtn" class="place-btn">Pasang di Chart</button>
-          <div class="ticket-hint">Muncul sebagai garis draggable di chart. Geser untuk atur harga, konfirmasi dengan PASANG.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="settings-wrap">
-      <button id="settingsToggleBtn" class="ticon" title="Pengaturan Sumber Data"><span data-icon="settings"></span></button>
-      <div id="settingsPopover" class="popover hidden">
-        <label>Sumber Data</label>
-        <button id="loadBtn" class="mini-btn settings-item"><span data-icon="folder"></span> Muat Folder Data</button>
-        <button id="githubBtn" class="mini-btn settings-item" title="Atur sumber data dari repo GitHub"><span data-icon="source"></span> Sumber GitHub</button>
-      </div>
-    </div>
-    <div id="acctBar">
-      <div class="aitem"><span>Balance</span><b id="acctBalance">$0.00</b></div>
-      <div class="aitem"><span>Equity</span><b id="acctEquity">$0.00</b></div>
-      <div class="aitem"><span>Floating P/L</span><b id="acctFloating">$0.00</b></div>
-    </div>
-    <div id="topIcons">
-      <button class="ticon" title="Indikator"><span data-icon="pulse"></span><span>Indikator</span></button>
-      <button class="ticon" title="Kalender ekonomi"><span data-icon="calendar"></span></button>
-      <button class="ticon" id="replayShortcutBtn" title="Mulai / fokus Replay"><span data-icon="refresh"></span><span>Replay</span></button>
-      <button class="ticon" title="Bagikan"><span data-icon="link"></span></button>
-      <button class="ticon" title="Mode gelap"><span data-icon="moon"></span></button>
-      <span class="user-chip"><span data-icon="user"></span> Trader</span>
-    </div>
-  </header>
-
-  <div id="tabsbar">
-    <div id="tabsbarInner"></div>
-    <div id="ohlcLine">
-      <span>O <b id="ohO">-</b></span>
-      <span>H <b id="ohH">-</b></span>
-      <span>L <b id="ohL">-</b></span>
-      <span>C <b id="ohC">-</b></span>
-      <span id="ohChg">-</span>
-    </div>
-  </div>
-
-  <div id="mainArea">
-    <div id="drawToolbar">
-      <button class="dtool active" data-tool="cursor" title="Kursor (Esc)"><span data-icon="cursor" data-icon-size="15"></span></button>
-      <div class="dtool-sep"></div>
-      <button class="dtool" data-tool="trend" title="Trend Line"><span data-icon="trendline" data-icon-size="15"></span></button>
-      <button class="dtool" data-tool="hline" title="Garis Horizontal"><span data-icon="hline" data-icon-size="15"></span></button>
-      <button class="dtool" data-tool="rect" title="Kotak"><span data-icon="rect" data-icon-size="15"></span></button>
-      <button class="dtool" data-tool="fib" title="Fibonacci Retracement" style="font-size:10.5px;font-weight:700;">Fib</button>
-      <div class="dtool-sep"></div>
-      <button id="chartTypeBtn" class="dtool" title="Ganti tipe chart: Candlestick / Line"><span data-icon="candlestick" data-icon-size="15"></span></button>
-      <div class="dtool-sep"></div>
-      <button id="clearDrawBtn" class="dtool" title="Hapus semua gambar di chart ini"><span data-icon="trash" data-icon-size="15"></span></button>
-    </div>
-    <div id="chartWrap">
-      <canvas id="chart"></canvas>
-      <div id="pickModeBanner" class="hidden">Klik candle di chart untuk mulai replay dari titik itu</div>
-      <button id="autoFitBtn" title="Auto Fit (reset tampilan ke skala otomatis)">A</button>
-      <div id="emptyState" class="hidden">
-        <div class="big">Belum ada data dimuat</div>
-        <div class="small">Klik "Muat Folder Data" lalu pilih folder tempat index.html ini berada (berisi folder-folder seperti xauusdc-m5, btcusdc-h1, dst). Setelah dimuat, pilih pair &amp; timeframe dari Watchlist di kanan.</div>
-        <button id="emptyLoadBtn"><span data-icon="folder"></span> Muat Folder Data</button>
-      </div>
-      <div id="loadingOverlay" class="hidden">Memuat data…</div>
-
-      <div id="draftTicketBar" class="draft-ticket hidden">
-        <span class="dt-label" id="dtLabel">BUY · SL 90 · TP 180 poin · R/R 1:2,0</span>
-        <input type="number" id="dtQty" class="dt-qty" step="0.01" min="0.01" value="0.10" title="Volume (lot)">
-        <button id="dtSend" class="dt-send">KIRIM</button>
-        <button id="dtCancel" class="dt-cancel" title="Batalkan order"><span data-icon="close" data-icon-size="13"></span></button>
-      </div>
-
-      <div id="replayFloat" class="replay-float hidden">
-        <div class="rf-handle"><span class="rf-dots" data-icon="grip" data-icon-size="13"></span><span>REPLAY</span><button id="pickStartBtn" class="rf-repick" title="Ubah titik awal replay"><span data-icon="target" data-icon-size="13"></span> Ubah Titik Awal</button></div>
-        <div class="rf-body">
-          <button class="rbtn" id="stepBackBtn" title="Mundur 1 candle"><span data-icon="skipback"></span></button>
-          <button class="rbtn" id="playBtn" title="Play/Pause"><span data-icon="play"></span></button>
-          <button class="rbtn" id="stepFwdBtn" title="Maju 1 candle"><span data-icon="skipforward"></span></button>
-          <select id="speedSel">
-            <option value="4">1×</option>
-            <option value="2">2×</option>
-            <option value="1" selected>4×</option>
-            <option value="0.5">8×</option>
-            <option value="0.2">16×</option>
-            <option value="0.08">32×</option>
-          </select>
-          <div id="scrubWrap">
-            <div id="scrubTrack"><div id="scrubFill"></div><div id="scrubHead"></div></div>
-            <input type="range" id="scrubBar" min="0" max="1000" value="1000">
-          </div>
-          <span id="posText">0 / 0</span>
-          <span id="dateText">—</span>
-          <button id="exitReplayBtn">Keluar Replay</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="chartCtxMenu" class="ctx-menu hidden">
-      <div class="ctx-section">
-        <div class="ctx-title">Tipe Chart</div>
-        <div class="ctx-row"><label><input type="radio" name="ctxChartType" value="candle"> Candlestick</label></div>
-        <div class="ctx-row"><label><input type="radio" name="ctxChartType" value="line"> Line</label></div>
-      </div>
-      <div class="ctx-sep"></div>
-      <div class="ctx-section">
-        <div class="ctx-title">Grid &amp; Tampilan</div>
-        <div class="ctx-row"><label><input type="checkbox" id="ctxShowGrid"> Tampilkan Grid</label></div>
-        <div class="ctx-row ctx-sub">
-          <span>Kepadatan</span>
-          <select id="ctxGridDensity">
-            <option value="4">Sedikit</option>
-            <option value="6">Sedang</option>
-            <option value="10">Banyak</option>
-          </select>
-        </div>
-        <div class="ctx-row"><label><input type="checkbox" id="ctxShowCrosshair"> Crosshair &amp; Label Harga</label></div>
-        <div class="ctx-row"><label><input type="checkbox" id="ctxAutoScale"> Skala Harga Otomatis</label></div>
-      </div>
-      <div class="ctx-sep"></div>
-      <div class="ctx-section">
-        <div class="ctx-title">Warna Candle</div>
-        <div class="ctx-row ctx-sub"><span>Naik</span><input type="color" id="ctxUpColor" value="#17c964"></div>
-        <div class="ctx-row ctx-sub"><span>Turun</span><input type="color" id="ctxDownColor" value="#f5455c"></div>
-      </div>
-      <div class="ctx-sep"></div>
-      <div class="ctx-row"><button id="ctxResetView" class="ctx-action"><span data-icon="rotateccw" data-icon-size="14"></span> Reset Tampilan Chart</button></div>
-      <div class="ctx-row"><button id="ctxDeleteDrawing" class="ctx-action danger hidden"><span data-icon="trash" data-icon-size="14"></span> Hapus Gambar Ini</button></div>
-      <div class="ctx-row"><button id="ctxClearDrawings" class="ctx-action danger"><span data-icon="trash" data-icon-size="14"></span> Hapus Semua Gambar</button></div>
-    </div>
-
-    <aside id="wlPanelPairs" class="side-panel hidden">
-      <div class="side-panel-head">
-        <span>WATCHLIST</span>
-        <div class="sp-head-actions">
-          <button id="clearBtn" class="mini-btn sp-mini">Reset</button>
-          <button class="sp-close" id="closeWlBtn" title="Tutup"><span data-icon="close" data-icon-size="13"></span></button>
-        </div>
-      </div>
-      <div id="wlList"></div>
-    </aside>
-
-    <aside id="wlPanelBacktest" class="side-panel hidden">
-      <div class="bt-scroll">
-          <div class="bt-head">
-            <span>UJI MAJU</span><span class="bt-tag">REPLAY</span>
-            <button class="sp-close" id="closeBtBtn" title="Tutup" style="margin-left:auto;"><span data-icon="close" data-icon-size="13"></span></button>
-          </div>
-
-          <div class="bt-totalr">
-            <div class="bt-totalr-left">
-              <div class="bt-totalr-label">TOTAL R</div>
-              <div class="bt-totalr-value" id="btTotalR">+0,00</div>
-              <div class="bt-totalr-sub" id="btTotalRSub">0 trade ber-SL</div>
-            </div>
-            <canvas id="btSpark" width="120" height="42"></canvas>
-          </div>
-          <div class="bt-progress"><div class="bt-progress-fill" id="btProgressFill" style="width:0%"></div></div>
-
-          <div class="bt-grid">
-            <div class="bt-stat"><div class="v" id="btWinRate">0%</div><div class="l">WIN RATE</div></div>
-            <div class="bt-stat"><div class="v" id="btExpect">+0,00</div><div class="l">EKSPEKTANSI</div></div>
-            <div class="bt-stat"><div class="v" id="btPF">0,00</div><div class="l">PROFIT FACTOR</div></div>
-            <div class="bt-stat"><div class="v" id="btDD">0,00</div><div class="l">PENURUNAN</div></div>
-            <div class="bt-stat"><div class="v" id="btWLB">0/0/0</div><div class="l">M/IMPAS/K</div></div>
-            <div class="bt-stat"><div class="v" id="btAvgWin">+0,00</div><div class="l">RATA MENANG</div></div>
-            <div class="bt-stat"><div class="v" id="btAvgLoss">-0,00</div><div class="l">RATA KALAH</div></div>
-            <div class="bt-stat"><div class="v" id="btLossStreak">0</div><div class="l">RUNTUN KALAH</div></div>
-          </div>
-
-          <div class="bt-pip-row">
-            <div class="bt-pip-item"><span id="btTotalPip">0,0</span><label>TOTAL POIN</label></div>
-            <div class="bt-pip-item"><span id="btAvgPip">0,0</span><label>RATA POIN</label></div>
-          </div>
-          <div class="bt-pip-note" id="btPipNote">poin — dari 0 trade</div>
-
-          <div class="bt-insight hidden" id="btInsight"></div>
-          <button id="btDownloadBtn" class="mini-btn"><span data-icon="download" data-icon-size="13"></span> Unduh Kartu Rekap</button>
-          <div class="ticket-hint">Trade replay dicatat terpisah dari trade live — hasil latihan di masa lalu tidak ikut menghitung win rate uji maju.</div>
-
-          <div class="bt-subtabs">
-            <button class="bt-subtab active" data-bt="posisi">Posisi <span id="btPosCount">0</span></button>
-            <button class="bt-subtab" data-bt="riwayat">Riwayat <span id="btHistCount">0</span></button>
-            <button class="bt-subtab" data-bt="atur">Atur</button>
-          </div>
-          <div class="bt-body">
-            <div id="btPanelPosisi" class="bt-subpanel"></div>
-            <div id="btPanelRiwayat" class="bt-subpanel hidden"></div>
-            <div id="btPanelAtur" class="bt-subpanel hidden">
-              <div class="term-subhead">Akun</div>
-              <div class="bt-info-row"><span>Balance</span><b id="ticketBalance">$0.00</b></div>
-              <div class="bt-info-row"><span>Equity</span><b id="ticketEquity">$0.00</b></div>
-              <div class="bt-info-row"><span>Floating P/L</span><b id="ticketFloating">$0.00</b></div>
-              <button id="editBalanceBtn" class="mini-btn"><span data-icon="pencil" data-icon-size="13"></span> Ubah Saldo Awal</button>
-
-              <div class="term-subhead">Info Pasar</div>
-              <div class="bt-info-row"><span id="ticketSymbol">— pilih pair —</span><b></b></div>
-              <div class="bt-info-row"><span>Bid</span><b id="ticketBid">-</b></div>
-              <div class="bt-info-row"><span>Ask</span><b id="ticketAsk">-</b></div>
-
-              <div class="term-subhead">Manual SL / TP</div>
-              <label>Stop Loss manual (dipakai kalau SL Otomatis nonaktif)</label>
-              <input type="number" id="slInput" placeholder="harga SL" step="any">
-              <label>Take Profit manual (dipakai kalau SL Otomatis nonaktif)</label>
-              <input type="number" id="tpInput" placeholder="harga TP" step="any">
-
-              <div class="term-subhead">SL Otomatis &amp; R/R</div>
-              <label class="chk-row"><input type="checkbox" id="autoSlChk" checked> <span>SL Otomatis (kunci rasio R/R)</span></label>
-              <label>SL (poin harga)</label>
-              <input type="number" id="slPointsInput" value="90" step="any" min="0.01">
-              <label>Risk/Reward — R/R 1 :</label>
-              <input type="number" id="rrInput" value="2" step="0.1" min="0.1">
-              <div class="settings-readout">TP otomatis ≈ <b id="tpPointsReadout">180</b> poin</div>
-              <div class="ticket-hint">Saat SL Otomatis aktif: begitu kamu tekan BUY/SELL atau pasang pending order, SL &amp; TP langsung memakai poin &amp; R/R di atas dan tampil sebagai garis draggable di chart — geser SL/TP, garis satunya otomatis menyesuaikan supaya rasio R/R tetap terjaga.</div>
-
-              <div class="term-subhead">Tampilan Chart</div>
-              <label class="chk-row"><input type="checkbox" id="showTrailsChk"> <span>Tampilkan jejak trade selesai di chart</span></label>
-            </div>
-          </div>
-      </div>
-    </aside>
-
-    <div id="rightRail">
-      <button class="rail-btn" id="railWatchlistBtn" title="Watchlist">
-        <span class="rail-ic" data-icon="list" data-icon-size="18"></span><span class="rail-lbl">Watchlist</span>
-      </button>
-      <button class="rail-btn" id="railBacktestBtn" title="Hasil Backtest">
-        <span class="rail-ic" data-icon="barchart" data-icon-size="18"></span><span class="rail-lbl">Backtest</span>
-        <span class="badge hidden" id="backtestBadge">0</span>
-      </button>
-    </div>
-  </div>
-
-</div>
+      <header id="topbar">
+            <div class="settings-wrap">
+                    <button id="settingsToggleBtn" class="ticon" title="Pengaturan Sumber Data"><span data-icon="settings"></span>span></button>button>
+                    <div id="settingsPopover" class="popover hidden">
+                              <label>Sumber Data</label>
+                            <button id="loadBtn" class="mini-btn settings-item"><span data-icon="folder"></span>span> Muat Folder Data</button>button>
+                            <button id="githubBtn" class="mini-btn settings-item" title="Atur sumber data dari repo GitHub"><span data-icon="source"></span>span> Sumber GitHub</button>button>
+                    </div>div>
+            </div>div>
+          <div class="divider"></div>div>
+          <div class="brand">AL-HAA<span class="tm">TM</span>span></div>div>
+          <div class="divider"></div>div>
+          <div id="symbolInfo">
+                <span class="sym" id="symName">— pilih pair —</span>span>
+                <span class="tf" id="symTf">—</span>span>
+          </div>div>
+          <div id="tfButtons"></div>div>
+      
+          <div id="quickOrder">
+                <input type="number" id="volInput" class="qv-input" step="0.01" min="0.01" value="0.10" title="Volume (lot)">
+                <button id="sellBtn" class="qorder sell">SELL<span id="sellPrice">-</span>span></button>button>
+                <button id="buyBtn" class="qorder buy">BUY<span id="buyPrice">-</span>span></button>button>
+                <div class="pending-wrap">
+                        <button id="pendingToggleBtn" class="qorder pend">PENDING</button>button>
+                        <div id="pendingPopover" class="popover hidden">
+                                  <label>Tipe Order</label>
+                                  <select id="pendingType">
+                                              <option value="buy_limit">Buy Limit</option>option>
+                                              <option value="sell_limit">Sell Limit</option>option>
+                                              <option value="buy_stop">Buy Stop</option>option>
+                                              <option value="sell_stop">Sell Stop</option>option>
+                                  </select>select>
+                                  <label>Harga Order</label>
+                                  <div class="price-pick-row">
+                                              <input type="number" id="pendingPrice" placeholder="mis. 2350.00" step="any">
+                                              <button id="pickPriceBtn" title="Klik chart untuk isi harga otomatis"><span data-icon="target"></span>span></button>button>
+                                  </div>div>
+                                  <button id="placePendingBtn" class="place-btn">Pasang di Chart</button>button>
+                                  <div class="ticket-hint">Muncul sebagai garis draggable di chart. Geser untuk atur harga, konfirmasi dengan PASANG.</div>div>
+                        </div>div>
+                </div>div>
+          </div>div>
+      
+          <div id="acctBar">
+                <div class="aitem"><span>Balance</span><b id="acctBalance">$0.00</b>b></div>div>
+                <div class="aitem"><span>Equity</span><b id="acctEquity">$0.00</b>b></div>div>
+                <div class="aitem"><span>Floating P/L</span><b id="acctFloating">$0.00</b>b></div>div>
+          </div>div>
+          <div id="topIcons">
+                <div class="indicator-wrap">
+                        <button id="indicatorToggleBtn" class="ticon" title="Indikator"><span data-icon="pulse"></span><span>Indikator</span></button>button>
+                        <div id="indicatorPopover" class="popover hidden">
+                                  <label>Indikator Chart</label>
+                                  <label class="chk-row"><input type="checkbox" id="indEma20Chk"> <span>EMA 20</span></label>
+                                  <label class="chk-row"><input type="checkbox" id="indEma50Chk"> <span>EMA 50</span></label>
+                                  <label class="chk-row"><input type="checkbox" id="indSma50Chk"> <span>SMA 50</span></label>
+                                  <label class="chk-row"><input type="checkbox" id="indRsi14Chk"> <span>RSI 14</span></label>
+                                  <div class="ticket-hint">Indikator baru tampil di chart &amp; tombol ini menyala setelah kamu aktifkan salah satunya.</div>div>
+                        </div>div>
+                </div>div>
+                <button class="ticon" id="replayShortcutBtn" title="Mulai / fokus Replay"><span data-icon="refresh"></span><span>Replay</span></button>button>
+                <button class="ticon" title="Bagikan"><span data-icon="link"></span></button>button>
+                <button class="ticon" title="Mode gelap"><span data-icon="moon"></span></button>button>
+                <span class="user-chip"><span data-icon="user"></span> Trader</span>
+          </div>div>
+      </header>header>
+  
+    <div id="tabsbar">
+        <div id="tabsbarInner"></div>div>
+        <div id="ohlcLine">
+              <span>O <b id="ohO">-</b>b></span>
+              <span>H <b id="ohH">-</b>b></span>
+              <span>L <b id="ohL">-</b>b></span>
+              <span>C <b id="ohC">-</b>b></span>
+              <span id="ohChg">-</span>
+        </div>div>
+    </div>div>
+  
+    <div id="mainArea">
+        <div id="drawToolbar">
+              <button class="dtool active" data-tool="cursor" title="Kursor (Esc)"><span data-icon="cursor" data-icon-size="15"></span></button>button>
+              <div class="dtool-sep"></div>div>
+              <button class="dtool" data-tool="trend" title="Trend Line"><span data-icon="trendline" data-icon-size="15"></span></button>button>
+              <button class="dtool" data-tool="hline" title="Garis Horizontal"><span data-icon="hline" data-icon-size="15"></span></button>button>
+              <button class="dtool" data-tool="rect" title="Kotak"><span data-icon="rect" data-icon-size="15"></span></button>button>
+              <button class="dtool" data-tool="fib" title="Fibonacci Retracement" style="font-size:10.5px;font-weight:700;">Fib</button>button>
+              <div class="dtool-sep"></div>div>
+              <button id="chartTypeBtn" class="dtool" title="Ganti tipe chart: Candlestick / Line"><span data-icon="candlestick" data-icon-size="15"></span></button>button>
+              <div class="dtool-sep"></div>div>
+              <button id="toggleDrawingsBtn" class="dtool" title="Sembunyikan / tampilkan semua gambar"><span data-icon="eye" data-icon-size="15"></span></button>button>
+              <div class="trash-wrap">
+                      <button id="clearDrawBtn" class="dtool" title="Hapus indikator / gambar"><span data-icon="trash" data-icon-size="15"></span></button>button>
+                      <div id="clearPopover" class="popover trash-popover hidden">
+                                <label>Hapus</label>
+                                <button id="clearIndicatorBtn" class="mini-btn danger">Hapus Indikator</button>button>
+                                <button id="clearAllDrawingsBtn" class="mini-btn danger">Hapus Seluruh Gambar</button>button>
+                      </div>div>
+              </div>div>
+        </div>div>
+        <div id="chartWrap">
+              <canvas id="chart"></canvas>canvas>
+              <div id="pickModeBanner" class="hidden">Klik candle di chart untuk mulai replay dari titik itu</div>div>
+              <button id="autoFitBtn" title="Auto Fit (reset tampilan ke skala otomatis)">A</button>button>
+              <div id="emptyState" class="hidden">
+                      <div class="big">Belum ada data dimuat</div>div>
+                      <div class="small">Klik "Muat Folder Data" lalu pilih folder tempat index.html ini berada (berisi folder-folder seperti xauusdc-m5, btcusdc-h1, dst). Setelah dimuat, pilih pair &amp; timeframe dari Watchlist di kanan.</div>div>
+                      <button id="emptyLoadBtn"><span data-icon="folder"></span> Muat Folder Data</button>button>
+              </div>div>
+              <div id="loadingOverlay" class="hidden">Memuat data…</div>div>
+        
+              <div id="draftTicketBar" class="draft-ticket hidden">
+                      <span class="dt-label" id="dtLabel">BUY · SL 90 · TP 180 poin · R/R 1:2,0</span>
+                      <button id="dtAddSl" class="dt-addlvl dt-addlvl-sl hidden" title="Tambah Stop Loss">+ SL</button>button>
+                      <button id="dtAddTp" class="dt-addlvl dt-addlvl-tp hidden" title="Tambah Take Profit">+ TP</button>button>
+                      <input type="number" id="dtQty" class="dt-qty" step="0.01" min="0.01" value="0.10" title="Volume (lot)">
+                      <button id="dtSend" class="dt-send">KIRIM</button>button>
+                      <button id="dtCancel" class="dt-cancel" title="Batalkan order"><span data-icon="close" data-icon-size="13"></span></button>button>
+              </div>div>
+        
+              <div id="replayFloat" class="replay-float hidden">
+                      <div class="rf-handle"><span class="rf-dots" data-icon="grip" data-icon-size="13"></span><span>REPLAY</span><button id="pickStartBtn" class="rf-repick" title="Ubah titik awal replay"><span data-icon="target" data-icon-size="13"></span> Ubah Titik Awal</button>button><input type="date" id="rfDateInput" class="rf-date" title="Lompat ke tanggal"><button id="rfDateGoBtn" class="rf-date-go" title="Lompat titik awal replay ke tanggal ini"><span data-icon="calendar" data-icon-size="13"></span></button>button></div>div>
+                      <div class="rf-body">
+                                <button class="rbtn" id="stepBackBtn" title="Mundur 1 candle"><span data-icon="skipback"></span></button>button>
+                                <button class="rbtn" id="playBtn" title="Play/Pause"><span data-icon="play"></span></button>button>
+                                <button class="rbtn" id="stepFwdBtn" title="Maju 1 candle"><span data-icon="skipforward"></span></button>button>
+                                <select id="speedSel">
+                                            <option value="4">1×</option>option>
+                                            <option value="2">2×</option>option>
+                                            <option value="1" selected>4×</option>option>
+                                            <option value="0.5">8×</option>option>
+                                            <option value="0.2">16×</option>option>
+                                            <option value="0.08">32×</option>option>
+                                </select>select>
+                                <div id="scrubWrap">
+                                            <div id="scrubTrack"><div id="scrubFill"></div>div><div id="scrubHead"></div>div></div>div>
+                                            <input type="range" id="scrubBar" min="0" max="1000" value="1000">
+                                </div>div>
+                                <span id="posText">0 / 0</span>
+                                <span id="dateText">—</span>
+                                <button id="exitReplayBtn">Keluar Replay</button>button>
+                      </div>div>
+              </div>div>
+        </div>div>
+    
+        <div id="chartCtxMenu" class="ctx-menu hidden">
+              <div class="ctx-section">
+                      <div class="ctx-title">Tipe Chart</div>div>
+                      <div class="ctx-row"><label><input type="radio" name="ctxChartType" value="candle"> Candlestick</label></div>div>
+                      <div class="ctx-row"><label><input type="radio" name="ctxChartType" value="line"> Line</label></div>div>
+              </div>div>
+              <div class="ctx-sep"></div>div>
+              <div class="ctx-section">
+                      <div class="ctx-title">Grid &amp; Tampilan</div>div>
+                      <div class="ctx-row"><label><input type="checkbox" id="ctxShowGrid"> Tampilkan Grid</label></div>div>
+                      <div class="ctx-row ctx-sub">
+                                <span>Kepadatan</span>
+                                <select id="ctxGridDensity">
+                                            <option value="4">Sedikit</option>option>
+                                            <option value="6">Sedang</option>option>
+                                            <option value="10">Banyak</option>option>
+                                </select>select>
+                      </div>div>
+                      <div class="ctx-row"><label><input type="checkbox" id="ctxShowCrosshair"> Crosshair &amp; Label Harga</label></div>div>
+                      <div class="ctx-row"><label><input type="checkbox" id="ctxAutoScale"> Skala Harga Otomatis</label></div>div>
+              </div>div>
+              <div class="ctx-sep"></div>div>
+              <div class="ctx-section">
+                      <div class="ctx-title">Warna Candle</div>div>
+                      <div class="ctx-row ctx-sub"><span>Naik</span><input type="color" id="ctxUpColor" value="#17c964"></div>div>
+                      <div class="ctx-row ctx-sub"><span>Turun</span><input type="color" id="ctxDownColor" value="#f5455c"></div>div>
+              </div>div>
+              <div class="ctx-sep"></div>div>
+              <div class="ctx-row"><button id="ctxResetView" class="ctx-action"><span data-icon="rotateccw" data-icon-size="14"></span> Reset Tampilan Chart</button>button></div>div>
+              <div class="ctx-row"><button id="ctxDeleteDrawing" class="ctx-action danger hidden"><span data-icon="trash" data-icon-size="14"></span> Hapus Gambar Ini</button>button></div>div>
+              <div class="ctx-row"><button id="ctxClearDrawings" class="ctx-action danger"><span data-icon="trash" data-icon-size="14"></span> Hapus Semua Gambar</button>button></div>div>
+        </div>div>
+    
+        <aside id="wlPanelPairs" class="side-panel hidden">
+              <div class="side-panel-head">
+                      <span>WATCHLIST</span>
+                      <div class="sp-head-actions">
+                                <button id="clearBtn" class="mini-btn sp-mini">Reset</button>button>
+                                <button class="sp-close" id="closeWlBtn" title="Tutup"><span data-icon="close" data-icon-size="13"></span></button>button>
+                      </div>div>
+              </div>div>
+              <div id="wlList"></div>div>
+        </aside>aside>
+    
+        <aside id="wlPanelBacktest" class="side-panel hidden">
+              <div class="bt-scroll">
+                        <div class="bt-head">
+                                    <span>UJI MAJU</span><span class="bt-tag">REPLAY</span>
+                                    <button class="sp-close" id="closeBtBtn" title="Tutup" style="margin-left:auto;"><span data-icon="close" data-icon-size="13"></span></button>button>
+                        </div>div>
+              
+                        <div class="bt-totalr">
+                                    <div class="bt-totalr-left">
+                                                  <div class="bt-totalr-label">TOTAL R</div>div>
+                                                  <div class="bt-totalr-value" id="btTotalR">+0,00</div>div>
+                                                  <div class="bt-totalr-sub" id="btTotalRSub">0 trade ber-SL</div>div>
+                                    </div>div>
+                                    <canvas id="btSpark" width="120" height="42"></canvas>canvas>
+                        </div>div>
+                        <div class="bt-progress"><div class="bt-progress-fill" id="btProgressFill" style="width:0%"></div>div></div>div>
+              
+                        <div class="bt-grid">
+                                    <div class="bt-stat"><div class="v" id="btWinRate">0%</div>div><div class="l">WIN RATE</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btExpect">+0,00</div>div><div class="l">EKSPEKTANSI</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btPF">0,00</div>div><div class="l">PROFIT FACTOR</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btDD">0,00</div>div><div class="l">PENURUNAN</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btWLB">0/0/0</div>div><div class="l">M/IMPAS/K</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btAvgWin">+0,00</div>div><div class="l">RATA MENANG</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btAvgLoss">-0,00</div>div><div class="l">RATA KALAH</div>div></div>div>
+                                    <div class="bt-stat"><div class="v" id="btLossStreak">0</div>div><div class="l">RUNTUN KALAH</div>div></div>div>
+                        </div>div>
+              
+                        <div class="bt-pip-row">
+                                    <div class="bt-pip-item"><span id="btTotalPip">0,0</span><label>TOTAL POIN</label></div>div>
+                                    <div class="bt-pip-item"><span id="btAvgPip">0,0</span><label>RATA POIN</label></div>div>
+                        </div>div>
+                        <div class="bt-pip-note" id="btPipNote">poin — dari 0 trade</div>div>
+              
+                        <div class="bt-insight hidden" id="btInsight"></div>div>
+                        <button id="btDownloadBtn" class="mini-btn"><span data-icon="download" data-icon-size="13"></span> Unduh Kartu Rekap</button>button>
+                        <div class="ticket-hint">Trade replay dicatat terpisah dari trade live — hasil latihan di masa lalu tidak ikut menghitung win rate uji maju.</div>div>
+              
+                        <div class="bt-subtabs">
+                                    <button class="bt-subtab active" data-bt="posisi">Posisi <span id="btPosCount">0</span></button>button>
+                                    <button class="bt-subtab" data-bt="riwayat">Riwayat <span id="btHistCount">0</span></button>button>
+                                    <button class="bt-subtab" data-bt="atur">Atur</button>button>
+                        </div>div>
+                        <div class="bt-body">
+                                    <div id="btPanelPosisi" class="bt-subpanel"></div>div>
+                                    <div id="btPanelRiwayat" class="bt-subpanel hidden"></div>div>
+                                    <div id="btPanelAtur" class="bt-subpanel hidden">
+                                                  <div class="term-subhead">Akun</div>div>
+                                                  <div class="bt-info-row"><span>Balance</span><b id="ticketBalance">$0.00</b>b></div>div>
+                                                  <div class="bt-info-row"><span>Equity</span><b id="ticketEquity">$0.00</b>b></div>div>
+                                                  <div class="bt-info-row"><span>Floating P/L</span><b id="ticketFloating">$0.00</b>b></div>div>
+                                                  <button id="editBalanceBtn" class="mini-btn"><span data-icon="pencil" data-icon-size="13"></span> Ubah Saldo Awal</button>button>
+                                    
+                                                  <div class="term-subhead">Info Pasar</div>div>
+                                                  <div class="bt-info-row"><span id="ticketSymbol">— pilih pair —</span><b></b></div>div>
+                                                  <div class="bt-info-row"><span>Bid</span><b id="ticketBid">-</b></div>div>
+                                                  <div class="bt-info-row"><span>Ask</span><b id="ticketAsk">-</b></div>div>
+                                    
+                                                  <div class="term-subhead">Manual SL / TP</div>div>
+                                                  <label>Stop Loss manual (dipakai kalau SL Otomatis nonaktif)</label>
+                                                  <input type="number" id="slInput" placeholder="harga SL" step="any">
+                                                  <label>Take Profit manual (dipakai kalau SL Otomatis nonaktif)</label>
+                                                  <input type="number" id="tpInput" placeholder="harga TP" step="any">
+                                    
+                                                  <div class="term-subhead">SL Otomatis &amp; R/R</div>div>
+                                                  <label class="chk-row"><input type="checkbox" id="autoSlChk" checked> <span>SL Otomatis (kunci rasio R/R)</span></label>
+                                                  <label>SL (poin harga)</label>
+                                                  <input type="number" id="slPointsInput" value="90" step="any" min="0.01">
+                                                  <label>Risk/Reward — R/R 1 :</label>
+                                                  <input type="number" id="rrInput" value="2" step="0.1" min="0.1">
+                                                  <div class="settings-readout">TP otomatis ≈ <b id="tpPointsReadout">180</b> poin</div>div>
+                                                  <div class="ticket-hint">Saat SL Otomatis aktif: begitu kamu tekan BUY/SELL atau pasang pending order, SL &amp; TP langsung memakai poin &amp; R/R di atas dan tampil sebagai garis draggable di chart — geser SL/TP, garis satunya otomatis menyesuaikan supaya rasio R/R tetap terjaga.</div>div>
+                                    
+                                                  <div class="term-subhead">Tampilan Chart</div>div>
+                                                  <label class="chk-row"><input type="checkbox" id="showTrailsChk"> <span>Tampilkan jejak trade selesai di chart</span></label>
+                                    </div>div>
+                        </div>div>
+              </div>div>
+        </aside>aside>
+    
+        <div id="rightRail">
+              <button class="rail-btn" id="railWatchlistBtn" title="Watchlist">
+                      <span class="rail-ic" data-icon="list" data-icon-size="18"></span><span class="rail-lbl">Watchlist</span>
+              </button>button>
+              <button class="rail-btn" id="railBacktestBtn" title="Hasil Backtest">
+                      <span class="rail-ic" data-icon="barchart" data-icon-size="18"></span><span class="rail-lbl">Backtest</span>
+                      <span class="badge hidden" id="backtestBadge">0</span>
+              </button>button>
+        </div>div>
+    </div>div>
+  
+  </div>div>
 
 <div id="githubModal" class="modal-overlay hidden">
   <div class="modal-box">
-    <div class="modal-title"><span data-icon="source" data-icon-size="16"></span> Sumber Data GitHub</div>
-    <label>Username GitHub</label>
-    <input id="ghUser" placeholder="mis. budi123" autocomplete="off">
-    <label>Nama Repo</label>
-    <input id="ghRepo" placeholder="mis. web-backtest-trading" autocomplete="off">
-    <label>Branch</label>
-    <input id="ghBranch" placeholder="main" value="main" autocomplete="off">
-    <div id="ghStatus" class="modal-status"></div>
-    <div class="modal-actions">
-      <button id="ghClear" class="mini-btn">Hapus Sumber</button>
-      <button id="ghCancel" class="mini-btn">Batal</button>
-      <button id="ghSave" class="place-btn">Simpan &amp; Muat</button>
-    </div>
-    <div class="ticket-hint">Kalau index.html ini kamu deploy lewat <b>GitHub Pages</b> di repo yang sama persis dengan folder data (btcusdc-d1, xauusdc-h1, dst), biasanya kamu <b>tidak perlu</b> isi ini — data otomatis kebaca dari folder sejajar. Isi form ini kalau file dibuka langsung dari komputer (bukan lewat server) atau di-host di tempat lain, sementara data JSON-nya tetap disimpan di GitHub. Repo harus publik.</div>
-  </div>
-</div>
+      <div class="modal-title"><span data-icon="source" data-icon-size="16"></span> Sumber Data GitHub</div>div>
+      <label>Username GitHub</label>
+      <input id="ghUser" placeholder="mis. budi123" autocomplete="off">
+      <label>Nama Repo</label>
+      <input id="ghRepo" placeholder="mis. web-backtest-trading" autocomplete="off">
+      <label>Branch</label>
+      <input id="ghBranch" placeholder="main" value="main" autocomplete="off">
+      <div id="ghStatus" class="modal-status"></div>div>
+      <div class="modal-actions">
+            <button id="ghClear" class="mini-btn">Hapus Sumber</button>button>
+            <button id="ghCancel" class="mini-btn">Batal</button>button>
+            <button id="ghSave" class="place-btn">Simpan &amp; Muat</button>button>
+      </div>div>
+      <div class="ticket-hint">Kalau index.html ini kamu deploy lewat <b>GitHub Pages</b> di repo yang sama persis dengan folder data (btcusdc-d1, xauusdc-h1, dst), biasanya kamu <b>tidak perlu</b> isi ini — data otomatis kebaca dari folder sejajar. Isi form ini kalau file dibuka langsung dari komputer (bukan lewat server) atau di-host di tempat lain, sementara data JSON-nya tetap disimpan di GitHub. Repo harus publik.</div>div>
+  </div>div>
+</div>div>
 
 <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
 
 <script src="app.js" defer></script>
 </body>
-</html>
+</html>html></b></b></span></span></label></label>
+</body></title>
+  </head>
