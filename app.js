@@ -35,6 +35,7 @@
     upColor: "#17c964",
     downColor: "#f5455c"
   };
+  let candleColorsCustomized = false; // true once user manually picks a candle color; stops theme switches from overriding it
   let ctxMenuTarget = null;        // {drawingId} if the context menu was opened on top of a drawing
   let drawingsHidden = false;      // toolbar "mata" toggle — sembunyikan semua gambar tanpa menghapusnya
   let indicatorSettings = {        // indikator chart — nonaktif sampai user aktifkan dari menu Indikator
@@ -44,6 +45,7 @@
   const el = (id) => document.getElementById(id);
   const chartCanvas = el("chart");
   const ctx = chartCanvas.getContext("2d");
+  const themeVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   /* ============================================================
      MODERN ICON SET — replaces emoji glyphs with clean inline SVG
@@ -824,7 +826,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     const range = (hi - lo) || 1;
     const stepX = w / (curveR.length - 1);
     const up = curveR[curveR.length-1] >= curveR[0];
-    c.strokeStyle = up ? "#17c964" : "#f5455c";
+    c.strokeStyle = up ? chartSettings.upColor : chartSettings.downColor;
     c.lineWidth = 1.6;
     c.beginPath();
     curveR.forEach((v,i) => {
@@ -834,7 +836,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     });
     c.stroke();
     c.lineTo(w, h); c.lineTo(0, h); c.closePath();
-    c.fillStyle = up ? "rgba(23,201,100,.12)" : "rgba(245,69,92,.12)";
+    c.fillStyle = up ? (chartSettings.upColor + "1f") : (chartSettings.downColor + "1f");
     c.fill();
   }
 
@@ -1575,9 +1577,9 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     const panelH = bottom - top;
     const valToY = (v) => top + (100 - v) / 100 * panelH;
     ctx.save();
-    ctx.fillStyle = "rgba(21,26,36,.55)";
+    ctx.fillStyle = themeVar("--chart-panel-bg");
     ctx.fillRect(padL, top, w - padL - padR, panelH);
-    ctx.strokeStyle = "#1a2029";
+    ctx.strokeStyle = themeVar("--chart-grid");
     ctx.lineWidth = 1;
     [30,50,70].forEach(lvl => {
       const y = valToY(lvl);
@@ -1586,7 +1588,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
     });
     ctx.setLineDash([]);
-    ctx.fillStyle = "#5b6577";
+    ctx.fillStyle = themeVar("--chart-axis");
     ctx.font = "10px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
     ctx.fillText("RSI 14", padL + 4, top + 11);
     ctx.strokeStyle = "#c98bff";
@@ -1664,8 +1666,8 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     lastDrawMeta = { lo, hi, padT, padB, padL, padR, plotH, plotW, w, h, startF, candleW, start, end };
 
     // grid + price axis
-    ctx.strokeStyle = "#1a2029";
-    ctx.fillStyle = "#5b6577";
+    ctx.strokeStyle = themeVar("--chart-grid");
+    ctx.fillStyle = themeVar("--chart-axis");
     ctx.font = "11px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
     ctx.lineWidth = 1;
     const gridLines = chartSettings.gridDensity;
@@ -1776,7 +1778,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     // crosshair + hover readout
     if (chartSettings.showCrosshair && hoverIndex !== null && hoverIndex >= start && hoverIndex <= end){
       const xCenter = padL + (hoverIndex - startF + 0.5) * candleW;
-      ctx.strokeStyle = "#3a4356";
+      ctx.strokeStyle = themeVar("--chart-crosshair");
       ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.moveTo(xCenter,padT); ctx.lineTo(xCenter,h-padB); ctx.stroke();
       if (hoverPriceY !== null){
@@ -1792,9 +1794,9 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
           const boxH = 18, boxW = padR - 4;
           const clampedY = Math.max(4, Math.min(h-4, hoverPriceY));
           ctx.save();
-          ctx.fillStyle = "#3a4356";
+          ctx.fillStyle = themeVar("--chart-tag-bg");
           ctx.fillRect(w - padR + 2, clampedY - boxH/2, boxW, boxH);
-          ctx.fillStyle = "#e6e9ef";
+          ctx.fillStyle = themeVar("--chart-tag-text");
           ctx.font = "bold 11px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
           ctx.textAlign = "left";
           ctx.fillText(fmtPrice(hoverPrice, spec.digits), w - padR + 7, clampedY + 4);
@@ -1806,7 +1808,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     }
 
     // x-axis time labels (a handful, evenly spaced)
-    ctx.fillStyle = "#5b6577";
+    ctx.fillStyle = themeVar("--chart-axis");
     const labelCount = Math.min(6, end - start + 1);
     for (let k=0;k<labelCount;k++){
       const idx = start + Math.floor((end-start) * k/(labelCount-1 || 1));
@@ -2180,10 +2182,12 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   });
   el("ctxUpColor").addEventListener("input", () => {
     chartSettings.upColor = el("ctxUpColor").value;
+    candleColorsCustomized = true;
     requestDraw();
   });
   el("ctxDownColor").addEventListener("input", () => {
     chartSettings.downColor = el("ctxDownColor").value;
+    candleColorsCustomized = true;
     requestDraw();
   });
   function resetChartView(){
@@ -2927,9 +2931,83 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   })();
 
   /* ============================================================
+     THEME SYSTEM — Liquid Glass / Neumorphism, each dark+light.
+     Persisted in localStorage; picked from the Pengaturan popover
+     or quick-toggled (mode only) from the topbar moon icon.
+     ============================================================ */
+  const THEME_KEY = "alhaza_theme_pref_v1";
+  const THEME_DEFAULT_CANDLES = {
+    "glass-dark":  { up: "#2be08e", down: "#ff5c72" },
+    "glass-light": { up: "#0fa968", down: "#e23350" },
+    "neumo-light": { up: "#149463", down: "#d63c56" },
+    "neumo-dark":  { up: "#33d489", down: "#ff6478" }
+  };
+  let themePref = { theme: "neumo", mode: "light" };
+
+  function loadThemePref(){
+    try{
+      const raw = localStorage.getItem(THEME_KEY);
+      if (raw){
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.theme && parsed.mode) return parsed;
+      }
+    }catch(err){ /* ignore */ }
+    return { theme: "neumo", mode: "light" };
+  }
+  function saveThemePref(pref){
+    try{ localStorage.setItem(THEME_KEY, JSON.stringify(pref)); }catch(err){ /* ignore */ }
+  }
+
+  function applyTheme(theme, mode, opts){
+    opts = opts || {};
+    themePref = { theme, mode };
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-mode", mode);
+    saveThemePref(themePref);
+
+    // sync swatch active state + quick-toggle icon
+    document.querySelectorAll(".theme-swatch").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.theme === theme && btn.dataset.mode === mode);
+    });
+    const quickBtn = el("themeQuickToggleBtn");
+    if (quickBtn) quickBtn.title = mode === "dark" ? "Ganti ke mode terang" : "Ganti ke mode gelap";
+
+    // candle colors follow the theme unless the user has manually picked their own
+    if (!candleColorsCustomized && !opts.keepCandleColors){
+      const key = theme + "-" + mode;
+      const defaults = THEME_DEFAULT_CANDLES[key];
+      if (defaults){
+        chartSettings.upColor = defaults.up;
+        chartSettings.downColor = defaults.down;
+        const upInput = el("ctxUpColor"), downInput = el("ctxDownColor");
+        if (upInput) upInput.value = defaults.up;
+        if (downInput) downInput.value = defaults.down;
+      }
+    }
+    requestDraw();
+    drawSparkline((computeStats()||{}).curveR);
+  }
+
+  function initThemeSystem(){
+    const pref = loadThemePref();
+    applyTheme(pref.theme, pref.mode);
+
+    document.querySelectorAll(".theme-swatch").forEach(btn => {
+      btn.addEventListener("click", () => applyTheme(btn.dataset.theme, btn.dataset.mode));
+    });
+    const quickBtn = el("themeQuickToggleBtn");
+    if (quickBtn){
+      quickBtn.addEventListener("click", () => {
+        applyTheme(themePref.theme, themePref.mode === "dark" ? "light" : "dark");
+      });
+    }
+  }
+
+  /* ============================================================
      INIT
      ============================================================ */
   function init(){
+    initThemeSystem();
     mountIcons();
     resizeCanvas();
     renderWatchlist();
