@@ -1355,6 +1355,8 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       return;
     }
     if (activeScreenId === id) activeScreenId = screens[Math.max(0, idx-1)].id;
+    selectedDrawingId = null;
+    closeContextMenu();
     renderTabs();
     updateTopbarForActiveScreen();
     draw();
@@ -1378,6 +1380,8 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
           return;
         }
         activeScreenId = s.id;
+        selectedDrawingId = null;
+        closeContextMenu();
         renderTabs();
         updateTopbarForActiveScreen();
         renderWatchlist();
@@ -2168,7 +2172,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     }
   }
   function renderFibLevelEditor(target){
-    if (!target.levels || !target.levels.length) target.levels = defaultFibLevels();
+    if (!target.levels) target.levels = defaultFibLevels();
     const wrap = el("ctxFibLevelList");
     wrap.innerHTML = target.levels.map((lv, i) => `
       <div class="fib-level-row" data-idx="${i}">
@@ -2207,7 +2211,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   el("ctxFibLabels").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.showLabels = el("ctxFibLabels").checked; requestDraw(); });
   el("ctxFibAddLevel").addEventListener("click", () => {
     const t = currentCtxDrawing(); if (!t) return;
-    if (!t.levels || !t.levels.length) t.levels = defaultFibLevels();
+    if (!t.levels) t.levels = defaultFibLevels();
     t.levels.push({ value: 1.618, color: "#9b59b6", enabled: true });
     renderFibLevelEditor(t);
     requestDraw();
@@ -2378,7 +2382,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
         ctx.beginPath(); ctx.moveTo(padL, y1); ctx.lineTo(x2, y1); ctx.stroke();
         ctx.setLineDash([]);
       } else if (dr.type === "fib"){
-        const levels = (dr.levels && dr.levels.length) ? dr.levels : defaultFibLevels();
+        const levels = dr.levels ? dr.levels : defaultFibLevels();
         const extend = !!dr.extend;
         const fx1raw = Math.min(x1,x2), fx2raw = Math.max(x1,x2);
         const fx1 = extend ? padL : fx1raw;
