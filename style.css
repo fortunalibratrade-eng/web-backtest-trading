@@ -16,6 +16,21 @@
     --amber-dim:#4a3512;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    /* Explicit stacking scale. Several chrome regions (#topbar, #tabsbar, #drawToolbar,
+       #rightRail) get `backdrop-filter` in the glass theme, and backdrop-filter silently
+       creates its own CSS stacking context on that element. Without an explicit z-index
+       here, a later DOM sibling (like #tabsbar right after #topbar) can end up painting
+       OVER an earlier one's popover even though the popover itself has a high z-index —
+       the popover's z-index only ever competes within its own trapped ancestor context.
+       Giving each chrome region a real position+z-index below fixes that at the source. */
+    --z-chart:1;
+    --z-toolbar:20;
+    --z-tabsbar:30;
+    --z-topbar:40;
+    --z-terminal:35;
+    --z-popover:100;
+    --z-ctxmenu:110;
+    --z-modal:200;
   }
   *{box-sizing:border-box;}
   .icon{display:block;flex:0 0 auto;}
@@ -28,6 +43,7 @@
 
   /* ---------- TOP BAR ---------- */
   #topbar{
+    position:relative;z-index:var(--z-topbar);
     display:flex;align-items:center;gap:12px;
     padding:8px 14px;min-height:54px;flex:0 0 auto;
     background:var(--panel);border-bottom:1px solid var(--border);
@@ -81,7 +97,7 @@
   .qorder.pend.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
   .pending-wrap{position:relative;}
   .popover{
-    position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:230px;
+    position:absolute;top:calc(100% + 8px);right:0;z-index:var(--z-popover);width:230px;
     background:var(--panel);border:1px solid var(--border);border-radius:10px;
     padding:12px 12px 10px;box-shadow:0 16px 40px rgba(0,0,0,.5);
   }
@@ -139,6 +155,7 @@
 
   /* ---------- TABS ---------- */
   #tabsbar{
+    position:relative;z-index:var(--z-tabsbar);
     display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 10px;flex:0 0 auto;
     background:var(--bg);border-bottom:1px solid var(--border);min-width:0;
   }
@@ -170,6 +187,7 @@
 
   /* ---------- DRAWING TOOLBAR ---------- */
   #drawToolbar{
+    position:relative;z-index:var(--z-toolbar);
     flex:0 0 auto;width:42px;background:var(--panel);border-right:1px solid var(--border);
     display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;
   }
@@ -221,7 +239,7 @@
 
   /* ---------- GITHUB SOURCE MODAL ---------- */
   #githubModal.modal-overlay{
-    position:fixed;inset:0;background:rgba(6,8,12,.7);display:flex;align-items:center;justify-content:center;z-index:50;
+    position:fixed;inset:0;background:rgba(6,8,12,.7);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal);
   }
   #githubModal.hidden{display:none !important;}
   .modal-box{
@@ -247,6 +265,7 @@
 
   /* ---------- RIGHT ICON RAIL + SIDE PANELS (Watchlist / Backtest) ---------- */
   #rightRail{
+    position:relative;z-index:var(--z-toolbar);
     width:56px;flex:0 0 auto;background:var(--panel);border-left:1px solid var(--border);
     display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:10px 6px;
   }
@@ -546,7 +565,7 @@
 #chart.scale-axis{cursor:ns-resize;}
 #chart.free-panning{cursor:move;}
 .ctx-menu{
-  position:fixed;z-index:60;width:236px;background:var(--panel);border:1px solid var(--border);
+  position:fixed;z-index:var(--z-ctxmenu);width:236px;background:var(--panel);border:1px solid var(--border);
   border-radius:10px;box-shadow:0 16px 44px rgba(0,0,0,.5);padding:8px 0;font-size:12px;
   max-height:80vh;overflow-y:auto;
 }
@@ -755,9 +774,9 @@
 /* ---------------- LIQUID GLASS — DARK ---------------- */
 html[data-theme="glass"][data-mode="dark"]{
   --bg:#0a0e16;
-  --panel:rgba(32,40,58,.52);
+  --panel:rgba(30,38,55,.36);
   --panel-alt:rgba(255,255,255,.05);
-  --border:rgba(255,255,255,.14);
+  --border:rgba(255,255,255,.16);
   --text:#eef1f8;
   --muted:#9aa4ba;
   --muted-2:#6c7690;
@@ -776,10 +795,10 @@ html[data-theme="glass"][data-mode="dark"]{
   --chart-tag-bg:#3a4356;
   --chart-tag-text:#eef1f8;
   --chart-panel-bg:rgba(255,255,255,.05);
-  --glass-blur:18px;
-  --glass-border:1px solid rgba(255,255,255,.14);
-  --glass-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 0 1px rgba(255,255,255,.03);
-  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 35%);
+  --glass-blur:7px;
+  --glass-border:1px solid rgba(255,255,255,.17);
+  --glass-shadow:0 10px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(255,255,255,.04);
+  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 35%);
   --body-bg-image:
     radial-gradient(1100px 620px at 12% -8%, rgba(110,168,255,.16), transparent 60%),
     radial-gradient(900px 560px at 92% 8%, rgba(43,224,142,.10), transparent 55%),
@@ -789,9 +808,9 @@ html[data-theme="glass"][data-mode="dark"]{
 /* ---------------- LIQUID GLASS — LIGHT ---------------- */
 html[data-theme="glass"][data-mode="light"]{
   --bg:#eef2fa;
-  --panel:rgba(255,255,255,.55);
-  --panel-alt:rgba(255,255,255,.42);
-  --border:rgba(30,42,66,.12);
+  --panel:rgba(255,255,255,.42);
+  --panel-alt:rgba(255,255,255,.32);
+  --border:rgba(30,42,66,.14);
   --text:#1b2333;
   --muted:#5c6580;
   --muted-2:#8791a6;
@@ -810,10 +829,10 @@ html[data-theme="glass"][data-mode="light"]{
   --chart-tag-bg:#c7cedd;
   --chart-tag-text:#1b2333;
   --chart-panel-bg:rgba(255,255,255,.5);
-  --glass-blur:18px;
-  --glass-border:1px solid rgba(255,255,255,.65);
-  --glass-shadow:0 12px 34px rgba(30,42,80,.14), inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.4);
-  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 40%);
+  --glass-blur:7px;
+  --glass-border:1px solid rgba(255,255,255,.75);
+  --glass-shadow:0 10px 30px rgba(30,42,80,.16), inset 0 1px 0 rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.45);
+  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 40%);
   --body-bg-image:
     radial-gradient(1100px 620px at 12% -8%, rgba(110,168,255,.20), transparent 60%),
     radial-gradient(900px 560px at 92% 8%, rgba(15,169,104,.14), transparent 55%),
@@ -822,66 +841,66 @@ html[data-theme="glass"][data-mode="light"]{
 
 /* ---------------- NEUMORPHISM — LIGHT (default) ---------------- */
 html[data-theme="neumo"][data-mode="light"]{
-  --bg:#e7ebf2;
-  --panel:#e7ebf2;
-  --panel-alt:#e2e6ee;
-  --border:rgba(30,40,60,.06);
-  --text:#2b3143;
-  --muted:#69718a;
-  --muted-2:#98a0b3;
-  --accent:#4f6ef2;
-  --accent-dim:rgba(79,110,242,.14);
-  --up:#149463;
-  --up-dim:rgba(20,148,99,.14);
-  --down:#d63c56;
-  --down-dim:rgba(214,60,86,.13);
-  --amber:#c17f0d;
-  --amber-dim:rgba(193,127,13,.14);
-  --candle-up:#149463; --candle-down:#d63c56;
-  --chart-grid:rgba(43,49,67,.09);
-  --chart-axis:#6b7386;
-  --chart-crosshair:rgba(43,49,67,.32);
+  --bg:#e9edf5;
+  --panel:#e9edf5;
+  --panel-alt:#e2e7f0;
+  --border:rgba(30,40,60,.10);
+  --text:#212739;
+  --muted:#565f79;
+  --muted-2:#8890a6;
+  --accent:#3d5ce0;
+  --accent-dim:rgba(61,92,224,.16);
+  --up:#0d8a5a;
+  --up-dim:rgba(13,138,90,.15);
+  --down:#c72f4a;
+  --down-dim:rgba(199,47,74,.14);
+  --amber:#a86a00;
+  --amber-dim:rgba(168,106,0,.15);
+  --candle-up:#0d8a5a; --candle-down:#c72f4a;
+  --chart-grid:rgba(33,39,57,.10);
+  --chart-axis:#5f6884;
+  --chart-crosshair:rgba(33,39,57,.35);
   --chart-tag-bg:#c7cedd;
-  --chart-tag-text:#2b3143;
-  --chart-panel-bg:rgba(255,255,255,.45);
+  --chart-tag-text:#212739;
+  --chart-panel-bg:rgba(255,255,255,.5);
   --neu-hi:#ffffff;
-  --neu-lo:#b9c0d1;
-  --neu-raised:5px 5px 11px var(--neu-lo), -5px -5px 11px var(--neu-hi);
-  --neu-raised-sm:3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
-  --neu-pressed:inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
-  --neu-pressed-sm:inset 2px 2px 5px var(--neu-lo), inset -2px -2px 5px var(--neu-hi);
+  --neu-lo:#a9b2c8;
+  --neu-raised:6px 6px 13px var(--neu-lo), -6px -6px 13px var(--neu-hi);
+  --neu-raised-sm:3.5px 3.5px 7px var(--neu-lo), -3.5px -3.5px 7px var(--neu-hi);
+  --neu-pressed:inset 4px 4px 8px var(--neu-lo), inset -4px -4px 8px var(--neu-hi);
+  --neu-pressed-sm:inset 2.5px 2.5px 5px var(--neu-lo), inset -2.5px -2.5px 5px var(--neu-hi);
 }
 
 /* ---------------- NEUMORPHISM — DARK ---------------- */
 html[data-theme="neumo"][data-mode="dark"]{
-  --bg:#242832;
-  --panel:#242832;
-  --panel-alt:#262b36;
-  --border:rgba(0,0,0,.22);
-  --text:#e7eaf2;
-  --muted:#939bb0;
-  --muted-2:#6b7286;
-  --accent:#7893ff;
-  --accent-dim:rgba(120,147,255,.18);
-  --up:#33d489;
-  --up-dim:rgba(51,212,137,.16);
-  --down:#ff6478;
-  --down-dim:rgba(255,100,120,.16);
-  --amber:#ffc26a;
-  --amber-dim:rgba(255,194,106,.16);
-  --candle-up:#33d489; --candle-down:#ff6478;
-  --chart-grid:rgba(255,255,255,.07);
-  --chart-axis:#8b93a8;
-  --chart-crosshair:rgba(255,255,255,.3);
+  --bg:#232733;
+  --panel:#232733;
+  --panel-alt:#262c3a;
+  --border:rgba(0,0,0,.3);
+  --text:#eef1f8;
+  --muted:#a3abc0;
+  --muted-2:#727a90;
+  --accent:#7d99ff;
+  --accent-dim:rgba(125,153,255,.2);
+  --up:#38dc95;
+  --up-dim:rgba(56,220,149,.17);
+  --down:#ff6d80;
+  --down-dim:rgba(255,109,128,.17);
+  --amber:#ffc978;
+  --amber-dim:rgba(255,201,120,.17);
+  --candle-up:#38dc95; --candle-down:#ff6d80;
+  --chart-grid:rgba(255,255,255,.08);
+  --chart-axis:#96a0b8;
+  --chart-crosshair:rgba(255,255,255,.32);
   --chart-tag-bg:#3d4351;
-  --chart-tag-text:#e7eaf2;
+  --chart-tag-text:#eef1f8;
   --chart-panel-bg:rgba(0,0,0,.22);
-  --neu-hi:#2c313d;
-  --neu-lo:#181b22;
-  --neu-raised:5px 5px 11px var(--neu-lo), -5px -5px 11px var(--neu-hi);
-  --neu-raised-sm:3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
-  --neu-pressed:inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
-  --neu-pressed-sm:inset 2px 2px 5px var(--neu-lo), inset -2px -2px 5px var(--neu-hi);
+  --neu-hi:#343b4a;
+  --neu-lo:#12141a;
+  --neu-raised:6px 6px 13px var(--neu-lo), -6px -6px 13px var(--neu-hi);
+  --neu-raised-sm:3.5px 3.5px 7px var(--neu-lo), -3.5px -3.5px 7px var(--neu-hi);
+  --neu-pressed:inset 4px 4px 8px var(--neu-lo), inset -4px -4px 8px var(--neu-hi);
+  --neu-pressed-sm:inset 2.5px 2.5px 5px var(--neu-lo), inset -2.5px -2.5px 5px var(--neu-hi);
 }
 
 /* ---------------- shared base wiring ---------------- */
@@ -908,8 +927,8 @@ html[data-theme="glass"] .draft-ticket,
 html[data-theme="glass"] #pickModeBanner{
   background-color:var(--panel);
   background-image:var(--glass-sheen);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
-  backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(135%);
+  backdrop-filter:blur(var(--glass-blur)) saturate(135%);
   border:var(--glass-border);
   box-shadow:var(--glass-shadow);
 }
@@ -954,8 +973,8 @@ html[data-theme="glass"] .settings-readout,
 html[data-theme="glass"] .user-chip,
 html[data-theme="glass"] .tab{
   background-color:var(--panel-alt);
-  -webkit-backdrop-filter:blur(10px) saturate(150%);
-  backdrop-filter:blur(10px) saturate(150%);
+  -webkit-backdrop-filter:blur(4px) saturate(130%);
+  backdrop-filter:blur(4px) saturate(130%);
   border-color:var(--border);
 }
 html[data-theme="glass"] .tab.active{background-color:var(--accent-dim);}
@@ -975,8 +994,8 @@ html[data-theme="glass"] .place-btn,
 html[data-theme="glass"] #playBtn,
 html[data-theme="glass"] .dt-send,
 html[data-theme="glass"] #emptyState button{
-  -webkit-backdrop-filter:blur(10px);
-  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
   box-shadow:0 6px 18px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.25);
 }
 html[data-theme="glass"] .place-btn:active,
@@ -992,16 +1011,16 @@ html[data-theme="glass"] .bt-body select,
 html[data-theme="glass"] .draft-ticket .dt-qty,
 html[data-theme="glass"] .ctx-row select{
   background-color:var(--panel-alt);
-  -webkit-backdrop-filter:blur(8px);
-  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(3px);
+  backdrop-filter:blur(3px);
 }
 
 html[data-theme="glass"] #chartWrap{
   background-color:var(--bg);
   background-image:var(--body-bg-image);
 }
-html[data-theme="glass"] #loadingOverlay{background:rgba(20,26,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
-html[data-theme="glass"] #githubModal.modal-overlay{-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+html[data-theme="glass"] #loadingOverlay{background:rgba(20,26,40,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+html[data-theme="glass"] #githubModal.modal-overlay{-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
 
 @keyframes glassPopIn{ from{opacity:0; transform:translateY(6px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
 html[data-theme="glass"] .popover,
@@ -1155,9 +1174,9 @@ html[data-theme="neumo"] #chartWrap{background:var(--bg);}
 .sw-preview.sw-glass-light::before{content:"";position:absolute;inset:4px;border-radius:5px;
   background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
   background-image:linear-gradient(120deg, rgba(255,255,255,.7), transparent 45%);}
-.sw-preview.sw-neumo-light{background:#e7ebf2;}
+.sw-preview.sw-neumo-light{background:#e9edf5;}
 .sw-preview.sw-neumo-light::before{content:"";position:absolute;top:7px;left:7px;right:7px;bottom:7px;border-radius:6px;
-  box-shadow:3px 3px 6px #b9c0d1, -3px -3px 6px #ffffff;}
-.sw-preview.sw-neumo-dark{background:#242832;}
+  box-shadow:3.5px 3.5px 7px #a9b2c8, -3.5px -3.5px 7px #ffffff;}
+.sw-preview.sw-neumo-dark{background:#232733;}
 .sw-preview.sw-neumo-dark::before{content:"";position:absolute;top:7px;left:7px;right:7px;bottom:7px;border-radius:6px;
-  box-shadow:3px 3px 6px #181b22, -3px -3px 6px #2c313d;}
+  box-shadow:3.5px 3.5px 7px #12141a, -3.5px -3.5px 7px #343b4a;}
