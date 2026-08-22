@@ -220,6 +220,34 @@
         <div class="ctx-row ctx-sub"><span>Naik</span><input type="color" id="ctxUpColor" value="#17c964"></div>
         <div class="ctx-row ctx-sub"><span>Turun</span><input type="color" id="ctxDownColor" value="#f5455c"></div>
       </div>
+      <div class="ctx-sep hidden" id="ctxDrawStyleSep"></div>
+      <div class="ctx-section hidden" id="ctxDrawStyleSection">
+        <div class="ctx-title" id="ctxDrawStyleTitle">Gaya Gambar</div>
+        <div class="ctx-row ctx-sub" id="ctxDrawColorRow"><span>Warna</span><input type="color" id="ctxDrawColor" value="#4f8cff"></div>
+        <div class="ctx-row ctx-sub" id="ctxDrawWidthRow">
+          <span>Ketebalan</span>
+          <select id="ctxDrawWidth">
+            <option value="1">Tipis</option>
+            <option value="1.4">Normal</option>
+            <option value="2">Tebal</option>
+            <option value="3">Sangat Tebal</option>
+          </select>
+        </div>
+        <div class="ctx-row" id="ctxDrawDashedRow"><label><input type="checkbox" id="ctxDrawDashed"> Garis Putus-putus</label></div>
+
+        <div class="ctx-row hidden" id="ctxRectFillRow"><label><input type="checkbox" id="ctxRectFillChk"> Isi Warna Kotak</label></div>
+        <div class="ctx-row ctx-sub hidden" id="ctxRectFillColorRow"><span>Warna Isi</span><input type="color" id="ctxRectFillColor" value="#4f8cff"></div>
+
+        <div id="ctxFibExtra" class="hidden">
+          <div class="ctx-row"><label><input type="checkbox" id="ctxFibExtend"> Perpanjang Garis</label></div>
+          <div class="ctx-row"><label><input type="checkbox" id="ctxFibFill" checked> Isi Area Antar Level</label></div>
+          <div class="ctx-row"><label><input type="checkbox" id="ctxFibLabels" checked> Tampilkan Label %</label></div>
+          <div class="ctx-title" style="margin-top:10px;">Level Fibonacci</div>
+          <div id="ctxFibLevelList"></div>
+          <div class="ctx-row"><button id="ctxFibAddLevel" class="ctx-action">+ Tambah Level</button></div>
+          <div class="ctx-row"><button id="ctxFibResetLevels" class="ctx-action">Reset ke Default</button></div>
+        </div>
+      </div>
       <div class="ctx-sep"></div>
       <div class="ctx-row"><button id="ctxResetView" class="ctx-action"><span data-icon="rotateccw" data-icon-size="14"></span> Reset Tampilan Chart</button></div>
       <div class="ctx-row"><button id="ctxDeleteDrawing" class="ctx-action danger hidden"><span data-icon="trash" data-icon-size="14"></span> Hapus Gambar Ini</button></div>
