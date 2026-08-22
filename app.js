@@ -2119,7 +2119,105 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     el("ctxUpColor").value = chartSettings.upColor;
     el("ctxDownColor").value = chartSettings.downColor;
     el("ctxDeleteDrawing").classList.toggle("hidden", !ctxMenuTarget);
+    syncDrawStyleSection();
   }
+
+  /* ---------- "Gaya Gambar" (drawing style) section — color/width/dash/fill for the
+     drawing currently targeted by the context menu, plus a full Fibonacci level editor. */
+  function currentCtxDrawing(){
+    return ctxMenuTarget ? getDrawings().find(d => d.id === ctxMenuTarget.drawingId) : null;
+  }
+  function syncDrawStyleSection(){
+    const target = currentCtxDrawing();
+    const section = el("ctxDrawStyleSection");
+    const sep = el("ctxDrawStyleSep");
+    if (!target){
+      section.classList.add("hidden");
+      sep.classList.add("hidden");
+      return;
+    }
+    section.classList.remove("hidden");
+    sep.classList.remove("hidden");
+    const isFib = target.type === "fib";
+    const isRect = target.type === "rect";
+    const typeLabel = isFib ? "Fibonacci" : isRect ? "Kotak" : target.type === "hline" ? "Garis Horizontal" : "Trend Line";
+    el("ctxDrawStyleTitle").textContent = "Gaya Gambar — " + typeLabel;
+
+    el("ctxDrawColorRow").classList.toggle("hidden", isFib);
+    el("ctxDrawWidthRow").classList.toggle("hidden", isFib);
+    el("ctxDrawDashedRow").classList.toggle("hidden", isFib);
+    if (!isFib){
+      el("ctxDrawColor").value = target.color || DRAW_DEFAULT_COLOR;
+      el("ctxDrawWidth").value = String(target.width || 1.4);
+      el("ctxDrawDashed").checked = !!target.dashed;
+    }
+
+    el("ctxRectFillRow").classList.toggle("hidden", !isRect);
+    el("ctxRectFillColorRow").classList.toggle("hidden", !isRect || target.fill === false);
+    if (isRect){
+      el("ctxRectFillChk").checked = target.fill !== false;
+      el("ctxRectFillColor").value = target.fillColor || target.color || DRAW_DEFAULT_COLOR;
+    }
+
+    el("ctxFibExtra").classList.toggle("hidden", !isFib);
+    if (isFib){
+      el("ctxFibExtend").checked = !!target.extend;
+      el("ctxFibFill").checked = target.fill !== false;
+      el("ctxFibLabels").checked = target.showLabels !== false;
+      renderFibLevelEditor(target);
+    }
+  }
+  function renderFibLevelEditor(target){
+    if (!target.levels || !target.levels.length) target.levels = defaultFibLevels();
+    const wrap = el("ctxFibLevelList");
+    wrap.innerHTML = target.levels.map((lv, i) => `
+      <div class="fib-level-row" data-idx="${i}">
+        <input type="checkbox" class="fib-en" ${lv.enabled !== false ? "checked" : ""} title="Tampilkan level ini">
+        <input type="number" step="0.001" value="${lv.value}" title="Rasio (contoh: 0.618)">
+        <input type="color" value="${lv.color || '#787b86'}">
+        <button class="fib-del" title="Hapus level">${iconSvg("close",11)}</button>
+      </div>`).join("");
+    wrap.querySelectorAll(".fib-level-row").forEach(row => {
+      const i = parseInt(row.dataset.idx, 10);
+      row.querySelector(".fib-en").addEventListener("change", (e) => { target.levels[i].enabled = e.target.checked; requestDraw(); });
+      row.querySelector('input[type="number"]').addEventListener("input", (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)){ target.levels[i].value = v; requestDraw(); }
+      });
+      row.querySelector('input[type="color"]').addEventListener("input", (e) => { target.levels[i].color = e.target.value; requestDraw(); });
+      row.querySelector(".fib-del").addEventListener("click", () => {
+        target.levels.splice(i,1);
+        renderFibLevelEditor(target);
+        requestDraw();
+      });
+    });
+  }
+  el("ctxDrawColor").addEventListener("input", () => { const t=currentCtxDrawing(); if(!t) return; t.color = el("ctxDrawColor").value; requestDraw(); });
+  el("ctxDrawWidth").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.width = parseFloat(el("ctxDrawWidth").value) || 1.4; requestDraw(); });
+  el("ctxDrawDashed").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.dashed = el("ctxDrawDashed").checked; requestDraw(); });
+  el("ctxRectFillChk").addEventListener("change", () => {
+    const t = currentCtxDrawing(); if (!t) return;
+    t.fill = el("ctxRectFillChk").checked;
+    el("ctxRectFillColorRow").classList.toggle("hidden", !t.fill);
+    requestDraw();
+  });
+  el("ctxRectFillColor").addEventListener("input", () => { const t=currentCtxDrawing(); if(!t) return; t.fillColor = el("ctxRectFillColor").value; requestDraw(); });
+  el("ctxFibExtend").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.extend = el("ctxFibExtend").checked; requestDraw(); });
+  el("ctxFibFill").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.fill = el("ctxFibFill").checked; requestDraw(); });
+  el("ctxFibLabels").addEventListener("change", () => { const t=currentCtxDrawing(); if(!t) return; t.showLabels = el("ctxFibLabels").checked; requestDraw(); });
+  el("ctxFibAddLevel").addEventListener("click", () => {
+    const t = currentCtxDrawing(); if (!t) return;
+    if (!t.levels || !t.levels.length) t.levels = defaultFibLevels();
+    t.levels.push({ value: 1.618, color: "#9b59b6", enabled: true });
+    renderFibLevelEditor(t);
+    requestDraw();
+  });
+  el("ctxFibResetLevels").addEventListener("click", () => {
+    const t = currentCtxDrawing(); if (!t) return;
+    t.levels = defaultFibLevels();
+    renderFibLevelEditor(t);
+    requestDraw();
+  });
 
   function openContextMenu(clientX, clientY){
     syncCtxMenuState();
@@ -2225,6 +2323,25 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
 
   const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
   const FIB_COLORS = ["#787b86","#f23645","#ff9800","#4caf50","#089981","#2962ff","#787b86"];
+  const DRAW_DEFAULT_COLOR = "#4f8cff";
+
+  function defaultFibLevels(){
+    return FIB_LEVELS.map((v,i) => ({ value: v, color: FIB_COLORS[i % FIB_COLORS.length], enabled: true }));
+  }
+  // Style fields attached to every new drawing so its color/width/etc. can later be
+  // customized from the right-click context menu ("Gaya Gambar").
+  function newDrawingExtra(type){
+    if (type === "fib") return { color: DRAW_DEFAULT_COLOR, width: 1.4, levels: defaultFibLevels(), extend:false, fill:true, showLabels:true };
+    if (type === "rect") return { color: DRAW_DEFAULT_COLOR, width: 1.4, dashed:false, fill:true, fillColor: DRAW_DEFAULT_COLOR };
+    if (type === "hline") return { color: DRAW_DEFAULT_COLOR, width: 1.4, dashed:true };
+    return { color: DRAW_DEFAULT_COLOR, width: 1.4, dashed:false }; // trend
+  }
+  function hexToRgba(hex, alpha){
+    hex = (hex || DRAW_DEFAULT_COLOR).replace("#","");
+    if (hex.length === 3) hex = hex.split("").map(c=>c+c).join("");
+    const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
 
   function drawUserDrawings(priceToY, w, h, padL, padR, padT, padB){
     drawingHitboxes = [];
@@ -2235,43 +2352,60 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     const spec = scrForSpec && scrForSpec.symbol ? getSpec(scrForSpec.symbol) : { digits: 2 };
     items.forEach(dr => {
       const isSelected = dr.id === selectedDrawingId;
+      const color = dr.color || DRAW_DEFAULT_COLOR;
+      const width = dr.width || 1.4;
+      const dashed = dr.dashed !== undefined ? dr.dashed : (dr.type === "hline");
       const x1 = idxToXPx(dr.p1.idx), y1 = priceToY(dr.p1.price);
       let x2, y2;
       if (dr.type === "hline"){ x2 = w - padR; y2 = y1; }
       else { x2 = idxToXPx(dr.p2.idx); y2 = priceToY(dr.p2.price); }
 
       ctx.save();
-      ctx.strokeStyle = isSelected ? "#ffb020" : "#4f8cff";
-      ctx.lineWidth = isSelected ? 2 : 1.4;
+      ctx.strokeStyle = isSelected ? "#ffb020" : color;
+      ctx.lineWidth = isSelected ? Math.max(2, width) : width;
 
       if (dr.type === "rect"){
         const rx = Math.min(x1,x2), ry = Math.min(y1,y2), rw = Math.abs(x2-x1), rh = Math.abs(y2-y1);
-        ctx.fillStyle = isSelected ? "rgba(255,176,32,.10)" : "rgba(79,140,255,.10)";
-        ctx.fillRect(rx, ry, rw, rh);
+        if (dr.fill !== false){
+          ctx.fillStyle = isSelected ? "rgba(255,176,32,.10)" : hexToRgba(dr.fillColor || color, 0.12);
+          ctx.fillRect(rx, ry, rw, rh);
+        }
+        if (dashed) ctx.setLineDash([6,4]);
         ctx.strokeRect(rx, ry, rw, rh);
+        ctx.setLineDash([]);
       } else if (dr.type === "hline"){
-        ctx.setLineDash([6,4]);
+        if (dashed) ctx.setLineDash([6,4]);
         ctx.beginPath(); ctx.moveTo(padL, y1); ctx.lineTo(x2, y1); ctx.stroke();
         ctx.setLineDash([]);
       } else if (dr.type === "fib"){
-        const fx1 = Math.min(x1,x2), fx2 = Math.max(x1,x2);
-        FIB_LEVELS.forEach((lv, i) => {
-          const price = dr.p1.price + (dr.p2.price - dr.p1.price) * lv;
+        const levels = (dr.levels && dr.levels.length) ? dr.levels : defaultFibLevels();
+        const extend = !!dr.extend;
+        const fx1raw = Math.min(x1,x2), fx2raw = Math.max(x1,x2);
+        const fx1 = extend ? padL : fx1raw;
+        const fx2 = extend ? (w - padR) : fx2raw;
+        levels.filter(lv => lv.enabled !== false).forEach(lv => {
+          const price = dr.p1.price + (dr.p2.price - dr.p1.price) * lv.value;
           const y = priceToY(price);
-          ctx.strokeStyle = isSelected ? "#ffb020" : FIB_COLORS[i % FIB_COLORS.length];
-          ctx.lineWidth = (lv === 0 || lv === 1) ? 1.6 : 1;
+          ctx.strokeStyle = isSelected ? "#ffb020" : (lv.color || "#787b86");
+          ctx.lineWidth = (lv.value === 0 || lv.value === 1) ? 1.6 : 1;
           ctx.beginPath(); ctx.moveTo(fx1, y); ctx.lineTo(fx2, y); ctx.stroke();
-          ctx.font = "11px -apple-system,Segoe UI,Roboto,sans-serif";
-          ctx.fillStyle = ctx.strokeStyle;
-          ctx.textBaseline = "bottom";
-          ctx.fillText(`${(lv*100).toFixed(1)}%  ${price.toFixed(spec.digits)}`, fx2 + 4, y - 2);
+          if (dr.showLabels !== false){
+            ctx.font = "11px -apple-system,Segoe UI,Roboto,sans-serif";
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.textBaseline = "bottom";
+            ctx.fillText(`${(lv.value*100).toFixed(1)}%  ${price.toFixed(spec.digits)}`, fx2raw + 4, y - 2);
+          }
         });
-        const yTop = priceToY(Math.max(dr.p1.price, dr.p2.price));
-        const yBot = priceToY(Math.min(dr.p1.price, dr.p2.price));
-        ctx.fillStyle = "rgba(79,140,255,.05)";
-        ctx.fillRect(fx1, yTop, fx2-fx1, yBot-yTop);
+        if (dr.fill !== false){
+          const yTop = priceToY(Math.max(dr.p1.price, dr.p2.price));
+          const yBot = priceToY(Math.min(dr.p1.price, dr.p2.price));
+          ctx.fillStyle = "rgba(79,140,255,.05)";
+          ctx.fillRect(fx1raw, yTop, fx2raw-fx1raw, yBot-yTop);
+        }
       } else { // trend
+        if (dashed) ctx.setLineDash([6,4]);
         ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        ctx.setLineDash([]);
       }
       ctx.restore();
 
@@ -2481,15 +2615,15 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       const price = yToPrice(my);
       if (idx === null || price === null) return;
       if (drawTool === "hline"){
-        getDrawings().push({ id: nextDrawingId++, type:"hline", p1:{idx,price}, p2:{idx,price} });
+        getDrawings().push({ id: nextDrawingId++, type:"hline", p1:{idx,price}, p2:{idx,price}, ...newDrawingExtra("hline") });
         setDrawTool("cursor");
         return;
       }
       if (!activeDrawingDraft){
-        activeDrawingDraft = { id:null, type: drawTool, p1:{idx,price}, p2:{idx,price} };
+        activeDrawingDraft = { id:null, type: drawTool, p1:{idx,price}, p2:{idx,price}, ...newDrawingExtra(drawTool) };
       } else {
         const list = getDrawings();
-        list.push({ id: nextDrawingId++, type: activeDrawingDraft.type, p1: activeDrawingDraft.p1, p2:{idx,price} });
+        list.push({ ...activeDrawingDraft, id: nextDrawingId++, p2:{idx,price} });
         activeDrawingDraft = null;
         setDrawTool("cursor");
       }
