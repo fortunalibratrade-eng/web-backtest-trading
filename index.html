@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Replay Backtest — Data MT5</title>
 <link rel="stylesheet" href="style.css">
+<script>
+  // Apply saved theme before first paint to avoid a flash of the wrong theme.
+  (function(){
+    try{
+      var raw = localStorage.getItem("alhaza_theme_pref_v1");
+      var pref = raw ? JSON.parse(raw) : null;
+      var theme = (pref && pref.theme) || "neumo";
+      var mode = (pref && pref.mode) || "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-mode", mode);
+    }catch(err){
+      document.documentElement.setAttribute("data-theme", "neumo");
+      document.documentElement.setAttribute("data-mode", "light");
+    }
+  })();
+</script>
 </head>
 <body>
 <div id="app">
@@ -16,6 +32,30 @@
         <label>Sumber Data</label>
         <button id="loadBtn" class="mini-btn settings-item"><span data-icon="folder"></span> Muat Folder Data</button>
         <button id="githubBtn" class="mini-btn settings-item" title="Atur sumber data dari repo GitHub"><span data-icon="source"></span> Sumber GitHub</button>
+        <div class="settings-sep"></div>
+        <div class="settings-label">Tampilan</div>
+        <div class="theme-grid" id="themeGrid">
+          <button type="button" class="theme-swatch" data-theme="glass" data-mode="light" title="Liquid Glass — Terang">
+            <span class="sw-preview sw-glass-light"></span>
+            <span class="sw-label">Glass Terang</span>
+            <span class="sw-check">✓</span>
+          </button>
+          <button type="button" class="theme-swatch" data-theme="glass" data-mode="dark" title="Liquid Glass — Gelap">
+            <span class="sw-preview sw-glass-dark"></span>
+            <span class="sw-label">Glass Gelap</span>
+            <span class="sw-check">✓</span>
+          </button>
+          <button type="button" class="theme-swatch" data-theme="neumo" data-mode="light" title="Neumorphism — Terang">
+            <span class="sw-preview sw-neumo-light"></span>
+            <span class="sw-label">Neumo Terang</span>
+            <span class="sw-check">✓</span>
+          </button>
+          <button type="button" class="theme-swatch" data-theme="neumo" data-mode="dark" title="Neumorphism — Gelap">
+            <span class="sw-preview sw-neumo-dark"></span>
+            <span class="sw-label">Neumo Gelap</span>
+            <span class="sw-check">✓</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="divider"></div>
@@ -71,8 +111,8 @@
       </div>
       <button class="ticon" id="replayShortcutBtn" title="Mulai / fokus Replay"><span data-icon="refresh"></span><span>Replay</span></button>
       <button class="ticon" title="Bagikan"><span data-icon="link"></span></button>
-      <button class="ticon" title="Mode gelap"><span data-icon="moon"></span></button>
-      <span class="user-chip"><span data-icon="user"></span> Trader</span>
+      <button class="ticon" id="themeQuickToggleBtn" title="Ganti mode terang/gelap"><span data-icon="moon"></span></button>
+      <span class="user-chip"><span data-icon="user"></span><span class="uc-label"> Trader</span></span>
     </div>
   </header>
 
