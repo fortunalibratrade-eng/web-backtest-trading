@@ -23,8 +23,8 @@
   #loadBtn, #githubBtn, #emptyLoadBtn, .ticon, .user-chip, .rf-repick,
   .mini-btn, .ctx-action, #ctxResetView{display:inline-flex;align-items:center;gap:6px;}
   .rw-del, .sp-close, #dtCancel, .tab .close{display:inline-flex;align-items:center;justify-content:center;}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;}
-  #app{display:flex;flex-direction:column;height:100%;}
+  html,body{height:100%;height:100dvh;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;}
+  #app{display:flex;flex-direction:column;height:100%;height:100dvh;padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);}
 
   /* ---------- TOP BAR ---------- */
   #topbar{
@@ -33,13 +33,13 @@
     background:var(--panel);border-bottom:1px solid var(--border);
     flex-wrap:wrap;row-gap:8px;
   }
-  .brand{display:flex;align-items:baseline;gap:2px;font-weight:800;letter-spacing:.5px;font-size:15px;color:var(--text);white-space:nowrap;}
+  .brand{display:flex;align-items:baseline;gap:2px;font-weight:800;letter-spacing:.5px;font-size:clamp(12px,3vw,15px);color:var(--text);white-space:nowrap;}
   .brand .tm{font-size:9px;font-weight:700;color:var(--amber);position:relative;top:-6px;}
   .divider{width:1px;height:26px;background:var(--border);flex:0 0 auto;}
   #symbolInfo{display:flex;align-items:center;gap:10px;font-family:var(--mono);white-space:nowrap;}
-  #symbolInfo .sym{font-weight:700;font-size:15px;}
+  #symbolInfo .sym{font-weight:700;font-size:clamp(12.5px,3vw,15px);}
   #symbolInfo .tf{font-size:11px;color:var(--muted);background:var(--panel-alt);border:1px solid var(--border);padding:2px 6px;border-radius:4px;}
-  #ohlcLine{display:flex;gap:10px;font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap;padding-right:4px;}
+  #ohlcLine{display:flex;gap:10px;font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap;padding-right:4px;flex:0 0 auto;}
   #ohlcLine b{color:var(--text);font-weight:600;}
   #ohlcLine .chg-up{color:var(--up);}
   #ohlcLine .chg-down{color:var(--down);}
@@ -140,9 +140,10 @@
   /* ---------- TABS ---------- */
   #tabsbar{
     display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 10px;flex:0 0 auto;
-    background:var(--bg);border-bottom:1px solid var(--border);
+    background:var(--bg);border-bottom:1px solid var(--border);min-width:0;
   }
-  #tabsbarInner{display:flex;align-items:center;gap:2px;min-width:0;}
+  #tabsbarInner{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  #tabsbarInner::-webkit-scrollbar{display:none;}
   .tab{
     display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px 6px 0 0;
     background:var(--panel);border:1px solid var(--border);border-bottom:none;
@@ -159,7 +160,7 @@
   #addTab:hover{color:var(--accent);border-color:var(--accent);}
 
   /* ---------- MAIN ---------- */
-  #mainArea{flex:1 1 auto;display:flex;min-height:0;min-width:0;}
+  #mainArea{flex:1 1 auto;display:flex;min-height:0;min-width:0;position:relative;}
   #chartWrap{flex:1 1 auto;position:relative;background:var(--bg);min-width:0;overflow:hidden;}
   #chart{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;user-select:none;-webkit-user-select:none;}
   #chart.panning{cursor:grabbing;}
@@ -422,7 +423,7 @@
 
 .bt-totalr{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:8px;}
 .bt-totalr-label{font-size:10px;color:var(--muted);letter-spacing:.6px;}
-.bt-totalr-value{font-family:var(--mono);font-size:30px;font-weight:800;line-height:1.15;color:var(--up);}
+.bt-totalr-value{font-family:var(--mono);font-size:clamp(22px,6vw,30px);font-weight:800;line-height:1.15;color:var(--up);}
 .bt-totalr-value.neg{color:var(--down);}
 .bt-totalr-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 #btSpark{flex:0 0 auto;}
@@ -455,6 +456,8 @@
 .bt-subtab span{font-family:var(--mono);color:var(--muted-2);margin-left:3px;}
 .bt-subtab.active span{color:#bcd3ff;}
 .bt-body{min-height:100px;}
+.bt-subpanel{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.term-table{min-width:480px;}
 
 /* riwayat trade cards */
 .rw-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:8px;}
@@ -573,16 +576,27 @@
 .ctx-action.danger:hover{background:var(--down-dim);border-color:var(--down);}
 
 /* ============================================================
-   RESPONSIVE — tablet & phone
+   RESPONSIVE — laptop / tablet / phone, portrait & landscape
+   Guiding rule: shrink, wrap, compact, or move to a scrollable/
+   overflow surface — never `display:none` an interactive control.
+   Text labels can drop to icon-only (icons keep their `title`),
+   nothing that fires an action ever becomes unreachable.
    ============================================================ */
 
-/* ---------- Tablet (≤ 980px): trim the topbar, let side panels overlay ---------- */
+/* ---------- Small laptop / tablet landscape (≤ 1200px): gentle compacting ---------- */
+@media (max-width: 1200px){
+  #topbar{ gap:9px; }
+  #acctBar{ gap:10px; }
+  .side-panel{ width:270px; }
+}
+
+/* ---------- Tablet (≤ 980px): icon-only chrome, side panels overlay the chart ---------- */
 @media (max-width: 980px){
   #topbar{ gap:8px; padding:8px 10px; }
   .divider{ display:none; }
   #acctBar{ gap:10px; }
   #acctBar .aitem span{ display:none; }         /* keep just the numbers, drop "Balance"/"Equity" labels */
-  .ticon span{ display:none; }                   /* icon-only quick actions */
+  .ticon span{ display:none; }                   /* icon-only quick actions — button + title stay */
   .ticon{ padding:7px; }
   .user-chip{ padding:6px 8px; }
   #quickOrder{ gap:5px; }
@@ -599,29 +613,42 @@
   .replay-float{ min-width:0; width:min(420px, calc(100% - 20px)); }
 }
 
-/* ---------- Phone (≤ 640px) ---------- */
+/* ---------- Large phone / small tablet portrait (≤ 640px) ---------- */
 @media (max-width: 640px){
   #topbar{ padding:8px; gap:6px; }
-  .brand{ font-size:13px; }
-  #symbolInfo .sym{ font-size:13px; }
-  #acctBar{ display:none; }                      /* balance/equity live inside the Backtest panel too */
+
+  /* Account bar stays fully visible — it just becomes its own compact
+     full-width row instead of squeezing (or disappearing from) the
+     symbol/timeframe row above it. */
+  #acctBar{
+    order:9; flex-basis:100%; width:100%; margin-left:0;
+    justify-content:space-between; gap:6px; padding:2px 2px 0;
+  }
+  #acctBar .aitem{ flex:1 1 0; align-items:flex-start; }
+  #acctBar .aitem span{ display:block; font-size:9px; }   /* full row now, labels fit again */
+
   #tfButtons{ overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
   #tfButtons::-webkit-scrollbar{ display:none; }
   .tfbtn{ padding:6px 8px; font-size:11px; }
+
   #quickOrder{ order:10; width:100%; }
   #quickOrder .qorder{ flex:1; }
   #quickOrder .pending-wrap{ flex:1; display:flex; }
   #quickOrder .pending-wrap .qorder{ width:100%; }
   .qv-input{ width:44px; }
   #loadBtn, #githubBtn{ padding:7px 10px; font-size:11.5px; }
-  .user-chip{ display:none; }
+
+  /* user chip: keep it (identity/status is still info), just compact to icon-only */
+  .user-chip{ padding:6px; }
+  .user-chip .uc-label{ display:none; }
 
   #drawToolbar{ width:36px; padding:6px 0; }
   .dtool{ width:26px; height:26px; font-size:12px; }
+  .draft-ticket{ left:44px; max-width:calc(100% - 56px); }
 
   .side-panel{ width:100vw; max-width:100vw; }
   #rightRail{ width:44px; padding:8px 4px; }
-  .rail-btn .rail-lbl{ display:none; }
+  .rail-btn .rail-lbl{ display:none; }           /* icon remains; `title` covers accessibility */
   .rail-btn{ padding:8px 2px; }
 
   .replay-float{
@@ -633,22 +660,54 @@
   .rf-repick{ font-size:10px; padding:4px 6px; }
   .rf-date{ max-width:88px; font-size:9.5px; }
 
-  .popover{ position:fixed; left:8px; right:8px; top:auto; bottom:8px; width:auto; }
+  .popover{ position:fixed; left:8px; right:8px; top:auto; bottom:8px; width:auto; max-height:min(420px, 70vh); overflow-y:auto; }
 
   .ctx-menu{ width:min(236px, calc(100vw - 20px)); }
 
   .modal-box{ width:92vw; }
+
+  .bt-grid{ grid-template-columns:repeat(2,1fr); gap:6px; }
 }
 
-/* ---------- Very small phones (≤ 380px) ---------- */
-@media (max-width: 380px){
+/* ---------- Small phones (≤ 420px) ---------- */
+@media (max-width: 420px){
   .brand .tm{ display:none; }
   #symbolInfo .tf{ display:none; }
-  .ticon:not(#replayShortcutBtn){ display:none; }  /* keep only the replay shortcut visible */
-  #quickOrder .qorder span{ display:none; }         /* hide the live price under BUY/SELL, keep the label */
+  #ohlcLine{ gap:6px; font-size:10px; }            /* stays visible, just tighter */
+  .qorder span{ font-size:8.5px; }                /* shrink the live price, never hide it */
+  #acctBar .aitem b{ font-size:11.5px; }
+  .bt-grid{ grid-template-columns:1fr 1fr; }
+  .bt-stat .v{ font-size:14px; }
 }
 
-/* ---------- Touch devices: slightly larger tap targets ---------- */
+/* ---------- Very small / narrow devices (≤ 340px) ---------- */
+@media (max-width: 340px){
+  #symbolInfo{ gap:6px; }
+  .qv-input{ width:38px; padding:8px 4px; }
+  .qorder{ padding:7px 6px; font-size:10px; }
+  #drawToolbar{ width:32px; }
+  .dtool{ width:24px; height:24px; }
+  #rightRail{ width:40px; }
+}
+
+/* ---------- Short viewports: landscape phones, split-screen, small laptops ---------- */
+@media (max-height: 480px) and (orientation: landscape){
+  #topbar{ min-height:auto; padding:6px 10px; row-gap:4px; }
+  #tabsbar{ padding:4px 10px; }
+  .side-panel-head{ padding:8px 12px; }
+  .bt-scroll{ padding:10px 12px 12px; }
+  .bt-totalr-value{ font-size:22px; }
+  .bt-progress{ margin-bottom:8px; }
+  .replay-float{ bottom:6px; }
+  .rf-body{ padding:6px 10px; }
+  #drawToolbar{ padding:4px 0; gap:2px; }
+  #rightRail{ padding:6px 4px; }
+  .popover{ max-height:min(320px, 80vh); overflow-y:auto; }
+  .ctx-menu{ max-height:70vh; }
+  .modal-box{ max-height:88vh; overflow-y:auto; }
+}
+
+/* ---------- Touch devices: bigger, thumb-friendly tap targets everywhere ---------- */
 @media (pointer: coarse){
   .dtool{ width:34px; height:34px; }
   .tfbtn{ padding:8px 10px; }
@@ -656,4 +715,438 @@
   #playBtn{ width:42px; height:42px; }
   .rail-btn{ padding:11px 4px; }
   .wl-tf-chip{ padding:6px 10px; }
+  .ticon{ min-width:38px; min-height:38px; }
+  .sp-close, .rw-del{ min-width:30px; min-height:30px; }
+  .term-close-btn, .term-add-lvl{ padding:7px 11px; }
+  .mini-btn{ padding:9px 8px; }
+  .price-pick-row button{ width:38px; }
+  .dt-cancel{ width:30px; height:30px; }
+  .theme-swatch{ padding:12px 8px 11px; }
+  .ctx-row input[type="color"]{ width:40px; height:28px; }
+  #autoFitBtn{ width:30px; height:30px; }
+  .wl-symbol-head{ padding:11px 10px; }
 }
+
+/* ---------- Very large screens: keep the terminal from feeling stretched ---------- */
+@media (min-width: 1800px){
+  #topbar{ padding:10px 22px; }
+  .side-panel{ width:340px; }
+  #rightRail{ width:62px; }
+}
+
+/* ============================================================
+   THEME SYSTEM — Liquid Glass & Neumorphism, each in dark/light
+   Controlled via html[data-theme] + html[data-mode].
+   Default (no attributes yet / JS not loaded) = classic dark
+   defined in :root above. JS sets the real attrs before paint.
+   ============================================================ */
+
+/* ---------------- LIQUID GLASS — DARK ---------------- */
+html[data-theme="glass"][data-mode="dark"]{
+  --bg:#0a0e16;
+  --panel:rgba(32,40,58,.52);
+  --panel-alt:rgba(255,255,255,.05);
+  --border:rgba(255,255,255,.14);
+  --text:#eef1f8;
+  --muted:#9aa4ba;
+  --muted-2:#6c7690;
+  --accent:#6ea8ff;
+  --accent-dim:rgba(110,168,255,.20);
+  --up:#2be08e;
+  --up-dim:rgba(43,224,142,.16);
+  --down:#ff5c72;
+  --down-dim:rgba(255,92,114,.16);
+  --amber:#ffc251;
+  --amber-dim:rgba(255,194,81,.16);
+  --candle-up:#2be08e; --candle-down:#ff5c72;
+  --chart-grid:rgba(255,255,255,.08);
+  --chart-axis:#8993ac;
+  --chart-crosshair:rgba(255,255,255,.38);
+  --chart-tag-bg:#3a4356;
+  --chart-tag-text:#eef1f8;
+  --chart-panel-bg:rgba(255,255,255,.05);
+  --glass-blur:18px;
+  --glass-border:1px solid rgba(255,255,255,.14);
+  --glass-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 0 1px rgba(255,255,255,.03);
+  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 35%);
+  --body-bg-image:
+    radial-gradient(1100px 620px at 12% -8%, rgba(110,168,255,.16), transparent 60%),
+    radial-gradient(900px 560px at 92% 8%, rgba(43,224,142,.10), transparent 55%),
+    radial-gradient(800px 700px at 50% 110%, rgba(255,140,180,.07), transparent 60%);
+}
+
+/* ---------------- LIQUID GLASS — LIGHT ---------------- */
+html[data-theme="glass"][data-mode="light"]{
+  --bg:#eef2fa;
+  --panel:rgba(255,255,255,.55);
+  --panel-alt:rgba(255,255,255,.42);
+  --border:rgba(30,42,66,.12);
+  --text:#1b2333;
+  --muted:#5c6580;
+  --muted-2:#8791a6;
+  --accent:#2f6df0;
+  --accent-dim:rgba(47,109,240,.14);
+  --up:#0fa968;
+  --up-dim:rgba(15,169,104,.14);
+  --down:#e23350;
+  --down-dim:rgba(226,51,80,.13);
+  --amber:#c97f0a;
+  --amber-dim:rgba(201,127,10,.14);
+  --candle-up:#0fa968; --candle-down:#e23350;
+  --chart-grid:rgba(27,35,51,.09);
+  --chart-axis:#6b7690;
+  --chart-crosshair:rgba(27,35,51,.35);
+  --chart-tag-bg:#c7cedd;
+  --chart-tag-text:#1b2333;
+  --chart-panel-bg:rgba(255,255,255,.5);
+  --glass-blur:18px;
+  --glass-border:1px solid rgba(255,255,255,.65);
+  --glass-shadow:0 12px 34px rgba(30,42,80,.14), inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.4);
+  --glass-sheen:linear-gradient(120deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 40%);
+  --body-bg-image:
+    radial-gradient(1100px 620px at 12% -8%, rgba(110,168,255,.20), transparent 60%),
+    radial-gradient(900px 560px at 92% 8%, rgba(15,169,104,.14), transparent 55%),
+    radial-gradient(800px 700px at 50% 110%, rgba(255,140,180,.14), transparent 60%);
+}
+
+/* ---------------- NEUMORPHISM — LIGHT (default) ---------------- */
+html[data-theme="neumo"][data-mode="light"]{
+  --bg:#e7ebf2;
+  --panel:#e7ebf2;
+  --panel-alt:#e2e6ee;
+  --border:rgba(30,40,60,.06);
+  --text:#2b3143;
+  --muted:#69718a;
+  --muted-2:#98a0b3;
+  --accent:#4f6ef2;
+  --accent-dim:rgba(79,110,242,.14);
+  --up:#149463;
+  --up-dim:rgba(20,148,99,.14);
+  --down:#d63c56;
+  --down-dim:rgba(214,60,86,.13);
+  --amber:#c17f0d;
+  --amber-dim:rgba(193,127,13,.14);
+  --candle-up:#149463; --candle-down:#d63c56;
+  --chart-grid:rgba(43,49,67,.09);
+  --chart-axis:#6b7386;
+  --chart-crosshair:rgba(43,49,67,.32);
+  --chart-tag-bg:#c7cedd;
+  --chart-tag-text:#2b3143;
+  --chart-panel-bg:rgba(255,255,255,.45);
+  --neu-hi:#ffffff;
+  --neu-lo:#b9c0d1;
+  --neu-raised:5px 5px 11px var(--neu-lo), -5px -5px 11px var(--neu-hi);
+  --neu-raised-sm:3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
+  --neu-pressed:inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
+  --neu-pressed-sm:inset 2px 2px 5px var(--neu-lo), inset -2px -2px 5px var(--neu-hi);
+}
+
+/* ---------------- NEUMORPHISM — DARK ---------------- */
+html[data-theme="neumo"][data-mode="dark"]{
+  --bg:#242832;
+  --panel:#242832;
+  --panel-alt:#262b36;
+  --border:rgba(0,0,0,.22);
+  --text:#e7eaf2;
+  --muted:#939bb0;
+  --muted-2:#6b7286;
+  --accent:#7893ff;
+  --accent-dim:rgba(120,147,255,.18);
+  --up:#33d489;
+  --up-dim:rgba(51,212,137,.16);
+  --down:#ff6478;
+  --down-dim:rgba(255,100,120,.16);
+  --amber:#ffc26a;
+  --amber-dim:rgba(255,194,106,.16);
+  --candle-up:#33d489; --candle-down:#ff6478;
+  --chart-grid:rgba(255,255,255,.07);
+  --chart-axis:#8b93a8;
+  --chart-crosshair:rgba(255,255,255,.3);
+  --chart-tag-bg:#3d4351;
+  --chart-tag-text:#e7eaf2;
+  --chart-panel-bg:rgba(0,0,0,.22);
+  --neu-hi:#2c313d;
+  --neu-lo:#181b22;
+  --neu-raised:5px 5px 11px var(--neu-lo), -5px -5px 11px var(--neu-hi);
+  --neu-raised-sm:3px 3px 6px var(--neu-lo), -3px -3px 6px var(--neu-hi);
+  --neu-pressed:inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
+  --neu-pressed-sm:inset 2px 2px 5px var(--neu-lo), inset -2px -2px 5px var(--neu-hi);
+}
+
+/* ---------------- shared base wiring ---------------- */
+html,body{transition:background-color .25s ease, color .25s ease;}
+body{background-color:var(--bg);}
+html[data-theme="glass"] body{background-image:var(--body-bg-image);background-attachment:fixed;}
+*{transition:background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;}
+
+/* ============================================================
+   LIQUID GLASS — component skin
+   Kaca cair: transparansi dinamis, backdrop blur, pantulan
+   cahaya di tepi atas, animasi halus saat hover/muncul.
+   ============================================================ */
+html[data-theme="glass"] #topbar,
+html[data-theme="glass"] #tabsbar,
+html[data-theme="glass"] #drawToolbar,
+html[data-theme="glass"] #rightRail,
+html[data-theme="glass"] .side-panel,
+html[data-theme="glass"] .popover,
+html[data-theme="glass"] .modal-box,
+html[data-theme="glass"] .ctx-menu,
+html[data-theme="glass"] .replay-float,
+html[data-theme="glass"] .draft-ticket,
+html[data-theme="glass"] #pickModeBanner{
+  background-color:var(--panel);
+  background-image:var(--glass-sheen);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter:blur(var(--glass-blur)) saturate(160%);
+  border:var(--glass-border);
+  box-shadow:var(--glass-shadow);
+}
+html[data-theme="glass"] #drawToolbar{border-right:var(--glass-border);border-top:none;border-bottom:none;border-left:none;}
+html[data-theme="glass"] #rightRail{border-left:var(--glass-border);border-top:none;border-bottom:none;border-right:none;}
+html[data-theme="glass"] .side-panel{border-left:var(--glass-border);}
+html[data-theme="glass"] #topbar{border-bottom:var(--glass-border);}
+html[data-theme="glass"] #tabsbar{border-bottom:var(--glass-border);}
+
+html[data-theme="glass"] .replay-float{background-color:var(--panel);}
+html[data-theme="glass"] .draft-ticket{background-color:var(--panel);border:var(--glass-border);}
+
+/* buttons / chips / inputs pick up a lighter frosted look, with a gentle
+   lift + brighten on hover to sell the "liquid" responsiveness */
+html[data-theme="glass"] .ticon,
+html[data-theme="glass"] .mini-btn,
+html[data-theme="glass"] .qorder,
+html[data-theme="glass"] .tfbtn,
+html[data-theme="glass"] .dtool,
+html[data-theme="glass"] .rail-btn,
+html[data-theme="glass"] #autoFitBtn,
+html[data-theme="glass"] .rbtn,
+html[data-theme="glass"] .wl-tf-chip,
+html[data-theme="glass"] .wl-symbol,
+html[data-theme="glass"] .bt-stat,
+html[data-theme="glass"] .bt-pip-item,
+html[data-theme="glass"] .rw-card,
+html[data-theme="glass"] .bt-subtabs,
+html[data-theme="glass"] .term-add-lvl,
+html[data-theme="glass"] .term-close-btn,
+html[data-theme="glass"] .ctx-action,
+html[data-theme="glass"] #addTab,
+html[data-theme="glass"] .sp-close,
+html[data-theme="glass"] .rf-repick,
+html[data-theme="glass"] .rf-date-go,
+html[data-theme="glass"] .rf-date,
+html[data-theme="glass"] #exitReplayBtn,
+html[data-theme="glass"] #scrubTrack,
+html[data-theme="glass"] #speedSel,
+html[data-theme="glass"] .price-pick-row button,
+html[data-theme="glass"] .settings-readout,
+html[data-theme="glass"] .user-chip,
+html[data-theme="glass"] .tab{
+  background-color:var(--panel-alt);
+  -webkit-backdrop-filter:blur(10px) saturate(150%);
+  backdrop-filter:blur(10px) saturate(150%);
+  border-color:var(--border);
+}
+html[data-theme="glass"] .tab.active{background-color:var(--accent-dim);}
+html[data-theme="glass"] .ticon:hover,
+html[data-theme="glass"] .mini-btn:hover,
+html[data-theme="glass"] .dtool:hover,
+html[data-theme="glass"] .rail-btn:hover,
+html[data-theme="glass"] #autoFitBtn:hover,
+html[data-theme="glass"] .rbtn:hover,
+html[data-theme="glass"] .wl-tf-chip:hover,
+html[data-theme="glass"] .ctx-action:hover,
+html[data-theme="glass"] .rf-date-go:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.08);
+}
+html[data-theme="glass"] .place-btn,
+html[data-theme="glass"] #playBtn,
+html[data-theme="glass"] .dt-send,
+html[data-theme="glass"] #emptyState button{
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  box-shadow:0 6px 18px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.25);
+}
+html[data-theme="glass"] .place-btn:active,
+html[data-theme="glass"] #playBtn:active,
+html[data-theme="glass"] .ticon:active,
+html[data-theme="glass"] .mini-btn:active{
+  transform:translateY(0) scale(.97);
+}
+
+html[data-theme="glass"] .modal-box input,
+html[data-theme="glass"] .bt-body input,
+html[data-theme="glass"] .bt-body select,
+html[data-theme="glass"] .draft-ticket .dt-qty,
+html[data-theme="glass"] .ctx-row select{
+  background-color:var(--panel-alt);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+}
+
+html[data-theme="glass"] #chartWrap{
+  background-color:var(--bg);
+  background-image:var(--body-bg-image);
+}
+html[data-theme="glass"] #loadingOverlay{background:rgba(20,26,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+html[data-theme="glass"] #githubModal.modal-overlay{-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+
+@keyframes glassPopIn{ from{opacity:0; transform:translateY(6px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
+html[data-theme="glass"] .popover,
+html[data-theme="glass"] .ctx-menu,
+html[data-theme="glass"] .modal-box{animation:glassPopIn .22s cubic-bezier(.2,.8,.3,1);}
+
+/* ============================================================
+   NEUMORPHISM — component skin
+   Permukaan flat senada background, dibentuk oleh shadow
+   ganda (terang+gelap) → efek timbul (raised) / tenggelam
+   (pressed) yang kuat dan khas.
+   ============================================================ */
+html[data-theme="neumo"] #topbar,
+html[data-theme="neumo"] #tabsbar,
+html[data-theme="neumo"] #drawToolbar,
+html[data-theme="neumo"] #rightRail{
+  background:var(--panel);border:none;box-shadow:var(--neu-raised);
+}
+html[data-theme="neumo"] .side-panel,
+html[data-theme="neumo"] .popover,
+html[data-theme="neumo"] .modal-box,
+html[data-theme="neumo"] .ctx-menu,
+html[data-theme="neumo"] .replay-float,
+html[data-theme="neumo"] .draft-ticket,
+html[data-theme="neumo"] #pickModeBanner{
+  background:var(--panel);border:none;box-shadow:var(--neu-raised);
+}
+
+html[data-theme="neumo"] .ticon,
+html[data-theme="neumo"] .mini-btn,
+html[data-theme="neumo"] .qorder,
+html[data-theme="neumo"] .tfbtn,
+html[data-theme="neumo"] .dtool,
+html[data-theme="neumo"] .rail-btn,
+html[data-theme="neumo"] #autoFitBtn,
+html[data-theme="neumo"] .rbtn,
+html[data-theme="neumo"] .wl-tf-chip,
+html[data-theme="neumo"] .wl-symbol,
+html[data-theme="neumo"] .bt-stat,
+html[data-theme="neumo"] .bt-pip-item,
+html[data-theme="neumo"] .rw-card,
+html[data-theme="neumo"] .bt-subtabs,
+html[data-theme="neumo"] .term-add-lvl,
+html[data-theme="neumo"] .ctx-action,
+html[data-theme="neumo"] #addTab,
+html[data-theme="neumo"] .sp-close,
+html[data-theme="neumo"] .rf-repick,
+html[data-theme="neumo"] .rf-date-go,
+html[data-theme="neumo"] .rf-date,
+html[data-theme="neumo"] #exitReplayBtn,
+html[data-theme="neumo"] #speedSel,
+html[data-theme="neumo"] .price-pick-row button,
+html[data-theme="neumo"] .settings-readout,
+html[data-theme="neumo"] .user-chip,
+html[data-theme="neumo"] .tab,
+html[data-theme="neumo"] .place-btn,
+html[data-theme="neumo"] #emptyState button,
+html[data-theme="neumo"] .dt-send,
+html[data-theme="neumo"] .dt-addlvl,
+html[data-theme="neumo"] .dt-cancel{
+  background:var(--panel);border:none;box-shadow:var(--neu-raised-sm);
+}
+html[data-theme="neumo"] #playBtn{background:var(--accent);box-shadow:var(--neu-raised-sm);}
+
+html[data-theme="neumo"] .ticon:hover,
+html[data-theme="neumo"] .mini-btn:hover,
+html[data-theme="neumo"] .dtool:hover,
+html[data-theme="neumo"] .rail-btn:hover,
+html[data-theme="neumo"] #autoFitBtn:hover,
+html[data-theme="neumo"] .rbtn:hover,
+html[data-theme="neumo"] .wl-tf-chip:hover,
+html[data-theme="neumo"] .ctx-action:hover,
+html[data-theme="neumo"] .place-btn:hover{
+  filter:brightness(1.03);
+}
+
+/* pressed / active / selected states sink INTO the surface */
+html[data-theme="neumo"] .tab.active,
+html[data-theme="neumo"] .dtool.active,
+html[data-theme="neumo"] .rail-btn.active,
+html[data-theme="neumo"] #autoFitBtn.active,
+html[data-theme="neumo"] .wl-tf-chip.loaded,
+html[data-theme="neumo"] .bt-subtab.active,
+html[data-theme="neumo"] .price-pick-row button.active,
+html[data-theme="neumo"] .ticon:active,
+html[data-theme="neumo"] .mini-btn:active,
+html[data-theme="neumo"] .place-btn:active,
+html[data-theme="neumo"] #playBtn.playing{
+  box-shadow:var(--neu-pressed-sm);
+}
+html[data-theme="neumo"] .bt-subtabs,
+html[data-theme="neumo"] #scrubTrack,
+html[data-theme="neumo"] .bt-progress{
+  box-shadow:var(--neu-pressed-sm);background:var(--panel);
+}
+
+/* inputs/selects always read as sunken (typing "into" the surface) */
+html[data-theme="neumo"] .modal-box input,
+html[data-theme="neumo"] .bt-body input,
+html[data-theme="neumo"] .bt-body select,
+html[data-theme="neumo"] .draft-ticket .dt-qty,
+html[data-theme="neumo"] .ctx-row select,
+html[data-theme="neumo"] .ctx-row input[type="color"],
+html[data-theme="neumo"] .qv-input{
+  background:var(--panel);border:none;box-shadow:var(--neu-pressed-sm);
+}
+html[data-theme="neumo"] .modal-box input:focus,
+html[data-theme="neumo"] .bt-body input:focus,
+html[data-theme="neumo"] .bt-body select:focus{
+  box-shadow:var(--neu-pressed-sm), 0 0 0 2px var(--accent-dim);
+}
+
+html[data-theme="neumo"] .term-table th{background:var(--panel);}
+html[data-theme="neumo"] .term-table td{border-bottom-color:var(--border);}
+html[data-theme="neumo"] .rw-badge.buy,
+html[data-theme="neumo"] .rw-badge.sell,
+html[data-theme="neumo"] .bt-insight,
+html[data-theme="neumo"] .modal-status{box-shadow:var(--neu-pressed-sm);}
+
+html[data-theme="neumo"] #chartWrap{background:var(--bg);}
+
+/* ============================================================
+   THEME PICKER — swatches inside the Pengaturan popover
+   ============================================================ */
+.settings-sep{height:1px;background:var(--border);margin:12px 0;}
+.settings-label{font-size:10px;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;}
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.theme-swatch{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:10px 8px 9px;border-radius:10px;cursor:pointer;font-family:var(--sans);
+  border:1px solid var(--border);background:var(--panel-alt);
+}
+.theme-swatch:hover{border-color:var(--accent);}
+.theme-swatch.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+.theme-swatch .sw-preview{
+  width:100%;height:34px;border-radius:7px;position:relative;overflow:hidden;
+}
+.theme-swatch .sw-label{font-size:10.5px;font-weight:600;color:var(--text);}
+.theme-swatch .sw-check{
+  position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:10px;display:none;align-items:center;justify-content:center;
+}
+.theme-swatch.active .sw-check{display:flex;}
+
+/* mini static previews so the swatch itself demonstrates the look, independent of the active theme */
+.sw-preview.sw-glass-dark{background:linear-gradient(135deg,#0a0e16,#1a2540);}
+.sw-preview.sw-glass-dark::before{content:"";position:absolute;inset:4px;border-radius:5px;
+  background:rgba(255,255,255,.08);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,.16);
+  background-image:linear-gradient(120deg, rgba(255,255,255,.22), transparent 45%);}
+.sw-preview.sw-glass-light{background:linear-gradient(135deg,#dfe8fb,#f3f6fd);}
+.sw-preview.sw-glass-light::before{content:"";position:absolute;inset:4px;border-radius:5px;
+  background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
+  background-image:linear-gradient(120deg, rgba(255,255,255,.7), transparent 45%);}
+.sw-preview.sw-neumo-light{background:#e7ebf2;}
+.sw-preview.sw-neumo-light::before{content:"";position:absolute;top:7px;left:7px;right:7px;bottom:7px;border-radius:6px;
+  box-shadow:3px 3px 6px #b9c0d1, -3px -3px 6px #ffffff;}
+.sw-preview.sw-neumo-dark{background:#242832;}
+.sw-preview.sw-neumo-dark::before{content:"";position:absolute;top:7px;left:7px;right:7px;bottom:7px;border-radius:6px;
+  box-shadow:3px 3px 6px #181b22, -3px -3px 6px #2c313d;}
