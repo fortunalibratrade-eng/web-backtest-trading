@@ -1721,7 +1721,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     // candles / line
     if (chartType === "line"){
       ctx.save();
-      ctx.strokeStyle = "#4f8cff";
+      ctx.strokeStyle = themeVar("--accent") || "#4f8cff";
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       let started = false;
@@ -1915,7 +1915,7 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
     }
 
     relevantPositions.forEach(p => {
-      const color = p.type === "buy" ? "#17c964" : "#f5455c";
+      const color = p.type === "buy" ? chartSettings.upColor : chartSettings.downColor;
       const entryX = xForIndex(p.openIndex);
       const entryY = priceToY(p.openPrice);
       const pnl = calcPnL(p, priceForPosition(p));
@@ -1924,11 +1924,11 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       drawLine(entryX, p.openPrice, color, false, label, p.id, "close-pos", true);
       const ageMs = p.__openedAt !== undefined ? (now - p.__openedAt) : null;
       drawEntryMarker(entryX, entryY, p.type, color, ageMs);
-      if (p.sl != null) drawLine(entryX, p.sl, "#f5455c", true, "SL "+fmtPrice(p.sl, spec.digits), p.id, "close-pos", false);
-      if (p.tp != null) drawLine(entryX, p.tp, "#17c964", true, "TP "+fmtPrice(p.tp, spec.digits), p.id, "close-pos", false);
+      if (p.sl != null) drawLine(entryX, p.sl, chartSettings.downColor, true, "SL "+fmtPrice(p.sl, spec.digits), p.id, "close-pos", false);
+      if (p.tp != null) drawLine(entryX, p.tp, chartSettings.upColor, true, "TP "+fmtPrice(p.tp, spec.digits), p.id, "close-pos", false);
     });
     relevantPending.forEach(o => {
-      drawLine(padL, o.price, "#ffb020", true, `${o.type.toUpperCase().replace("_"," ")} ${o.volume.toFixed(2)}`, o.id, "cancel-pending", false);
+      drawLine(padL, o.price, themeVar("--amber") || "#ffb020", true, `${o.type.toUpperCase().replace("_"," ")} ${o.volume.toFixed(2)}`, o.id, "cancel-pending", false);
       pendingLineZones.push({ y: priceToY(o.price), id: o.id });
     });
   }
@@ -1971,13 +1971,13 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       return y;
     }
 
-    const color = draftOrder.type === "buy" ? "#17c964" : "#f5455c";
+    const color = draftOrder.type === "buy" ? chartSettings.upColor : chartSettings.downColor;
     const entryDragType = draftOrder.kind === "pending" ? "entry" : null;
     const entryLabel = (draftOrder.kind === "pending" ? draftOrder.pendingType.toUpperCase().replace("_"," ") : (draftOrder.type==="buy"?"BUY":"SELL")) + " " + fmtPrice(draftOrder.entryPrice, spec.digits);
-    dashLine(draftOrder.entryPrice, "#4f8cff", entryLabel, entryDragType, true);
+    dashLine(draftOrder.entryPrice, themeVar("--accent") || "#4f8cff", entryLabel, entryDragType, true);
     let slY = null, tpY = null;
-    if (draftOrder.sl != null) slY = dashLine(draftOrder.sl, "#f5455c", "SL "+fmtPrice(draftOrder.sl, spec.digits), "sl", false);
-    if (draftOrder.tp != null) tpY = dashLine(draftOrder.tp, "#17c964", "TP "+fmtPrice(draftOrder.tp, spec.digits), "tp", false);
+    if (draftOrder.sl != null) slY = dashLine(draftOrder.sl, chartSettings.downColor, "SL "+fmtPrice(draftOrder.sl, spec.digits), "sl", false);
+    if (draftOrder.tp != null) tpY = dashLine(draftOrder.tp, chartSettings.upColor, "TP "+fmtPrice(draftOrder.tp, spec.digits), "tp", false);
 
     // × button on the entry line to discard the draft, reusing the shared hitbox click-router
     const entryY = priceToY(draftOrder.entryPrice);
