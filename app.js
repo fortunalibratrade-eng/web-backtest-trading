@@ -43,6 +43,33 @@
   };
 
   const el = (id) => document.getElementById(id);
+
+  /* ---------- popover registry: only one of these may be open at a time ----------
+     Bug fixed: each popover (Pengaturan / Pending / Indikator / Hapus-gambar) used to
+     open/close independently. On narrow screens they all render at the exact same
+     fixed position, so if one was left open and another got triggered, the older one
+     sat visually on top and swallowed clicks meant for the new one ("kekunci di
+     belakang"). closeAllPopovers() below is called before any popover opens so at
+     most one is ever visible. */
+  const POPOVER_IDS = ["settingsPopover", "pendingPopover", "indicatorPopover", "clearPopover"];
+  const POPOVER_TOGGLE_BTNS = {
+    settingsPopover: "settingsToggleBtn",
+    pendingPopover: "pendingToggleBtn",
+    indicatorPopover: "indicatorToggleBtn",
+    clearPopover: "clearDrawBtn"
+  };
+  function closeAllPopovers(exceptId){
+    POPOVER_IDS.forEach((id) => {
+      if (id === exceptId) return;
+      const pop = el(id);
+      if (!pop || pop.classList.contains("hidden")) return;
+      pop.classList.add("hidden");
+      const btnId = POPOVER_TOGGLE_BTNS[id];
+      const btn = btnId && el(btnId);
+      if (btn) btn.classList.remove("active");
+    });
+  }
+
   const chartCanvas = el("chart");
   const ctx = chartCanvas.getContext("2d");
   const themeVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -549,8 +576,10 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   el("pendingToggleBtn").addEventListener("click", (e) => {
     e.stopPropagation();
     const pop = el("pendingPopover");
+    const willOpen = pop.classList.contains("hidden");
+    closeAllPopovers("pendingPopover");
     pop.classList.toggle("hidden");
-    el("pendingToggleBtn").classList.toggle("active", !pop.classList.contains("hidden"));
+    el("pendingToggleBtn").classList.toggle("active", willOpen);
   });
   document.addEventListener("click", (e) => {
     const pop = el("pendingPopover");
@@ -564,8 +593,10 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   el("settingsToggleBtn").addEventListener("click", (e) => {
     e.stopPropagation();
     const pop = el("settingsPopover");
+    const willOpen = pop.classList.contains("hidden");
+    closeAllPopovers("settingsPopover");
     pop.classList.toggle("hidden");
-    el("settingsToggleBtn").classList.toggle("active", !pop.classList.contains("hidden"));
+    el("settingsToggleBtn").classList.toggle("active", willOpen);
   });
   document.addEventListener("click", (e) => {
     const pop = el("settingsPopover");
@@ -2046,8 +2077,9 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
       el("clearIndicatorBtn").disabled = !hasIndicator;
       el("clearAllDrawingsBtn").disabled = !hasDrawings;
     }
+    closeAllPopovers("clearPopover");
     pop.classList.toggle("hidden");
-    el("clearDrawBtn").classList.toggle("active", !pop.classList.contains("hidden"));
+    el("clearDrawBtn").classList.toggle("active", willOpen);
   });
   document.addEventListener("click", (e) => {
     const pop = el("clearPopover");
@@ -2082,7 +2114,9 @@ download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
   }
   el("indicatorToggleBtn").addEventListener("click", (e) => {
     e.stopPropagation();
-    el("indicatorPopover").classList.toggle("hidden");
+    const pop = el("indicatorPopover");
+    closeAllPopovers("indicatorPopover");
+    pop.classList.toggle("hidden");
   });
   document.addEventListener("click", (e) => {
     const pop = el("indicatorPopover");
