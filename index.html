@@ -112,7 +112,39 @@
       <button class="ticon" id="replayShortcutBtn" title="Mulai / fokus Replay"><span data-icon="refresh"></span><span>Replay</span></button>
       <button class="ticon" title="Bagikan"><span data-icon="link"></span></button>
       <button class="ticon" id="themeQuickToggleBtn" title="Ganti mode terang/gelap"><span data-icon="moon"></span></button>
-      <span class="user-chip"><span data-icon="user"></span><span class="uc-label"> Trader</span></span>
+      <div class="auth-wrap">
+        <button id="authBtn" class="ticon user-chip" title="Masuk"><span data-icon="user"></span><span class="uc-label" id="authLabel"> Masuk</span></button>
+        <div id="authPopover" class="popover auth-popover hidden">
+
+          <div id="authLoggedOut">
+            <div class="ctx-title">Masuk ke AL-HAZA</div>
+            <button id="authGoogleBtn" class="auth-google-btn"><span data-icon="google" data-icon-size="16"></span> Lanjutkan dengan Google</button>
+            <div class="auth-sep"><span>atau</span></div>
+            <label class="auth-field-label">Email</label>
+            <input type="email" id="authEmail" class="auth-input" placeholder="nama@email.com" autocomplete="email">
+            <label class="auth-field-label">Kata Sandi</label>
+            <input type="password" id="authPassword" class="auth-input" placeholder="Minimal 6 karakter" autocomplete="current-password">
+            <div id="authError" class="auth-error hidden"></div>
+            <div class="auth-btn-row">
+              <button id="authSignInBtn" class="place-btn">Masuk</button>
+              <button id="authSignUpBtn" class="mini-btn">Daftar</button>
+            </div>
+          </div>
+
+          <div id="authLoggedIn" class="hidden">
+            <div class="ctx-title">Akun</div>
+            <div class="auth-account-row">
+              <span data-icon="user" data-icon-size="18"></span>
+              <div class="auth-account-info">
+                <div id="authUserName">—</div>
+                <div id="authUserEmail" class="auth-user-email">—</div>
+              </div>
+            </div>
+            <button id="authSignOutBtn" class="mini-btn auth-signout-btn">Keluar</button>
+          </div>
+
+        </div>
+      </div>
     </div>
   </header>
 
@@ -135,6 +167,38 @@
       <button class="dtool" data-tool="hline" title="Garis Horizontal"><span data-icon="hline" data-icon-size="15"></span></button>
       <button class="dtool" data-tool="rect" title="Kotak"><span data-icon="rect" data-icon-size="15"></span></button>
       <button class="dtool" data-tool="fib" title="Fibonacci Retracement" style="font-size:10.5px;font-weight:700;">Fib</button>
+      <div class="tool-style-wrap">
+        <button id="toolStyleBtn" class="dtool" title="Pilih tool gambar dulu" disabled><span data-icon="settings" data-icon-size="15"></span></button>
+        <div id="toolStylePopover" class="popover toolstyle-popover hidden">
+          <div class="ctx-title" id="toolStyleTitle">Gaya Gambar</div>
+
+          <div class="ctx-row ctx-sub" id="tsColorRow"><span>Warna</span><input type="color" id="tsColor" value="#4f8cff"></div>
+          <div class="ctx-row ctx-sub" id="tsWidthRow">
+            <span>Ketebalan</span>
+            <select id="tsWidth">
+              <option value="1">Tipis</option>
+              <option value="1.4">Normal</option>
+              <option value="2">Tebal</option>
+              <option value="3">Sangat Tebal</option>
+            </select>
+          </div>
+          <div class="ctx-row" id="tsDashedRow"><label><input type="checkbox" id="tsDashed"> Garis Putus-putus</label></div>
+
+          <div class="ctx-row hidden" id="tsRectFillRow"><label><input type="checkbox" id="tsRectFillChk"> Isi Warna Kotak</label></div>
+          <div class="ctx-row ctx-sub hidden" id="tsRectFillColorRow"><span>Warna Isi</span><input type="color" id="tsRectFillColor" value="#4f8cff"></div>
+
+          <div id="tsFibExtra" class="hidden">
+            <div class="ctx-row"><label><input type="checkbox" id="tsFibExtend"> Perpanjang Garis</label></div>
+            <div class="ctx-row"><label><input type="checkbox" id="tsFibFill" checked> Isi Area Antar Level</label></div>
+            <div class="ctx-row"><label><input type="checkbox" id="tsFibLabels" checked> Tampilkan Label %</label></div>
+            <div class="ctx-title" style="margin-top:10px;">Level Fibonacci</div>
+            <div id="tsFibLevelList"></div>
+            <div class="ctx-row"><button id="tsFibAddLevel" class="ctx-action">+ Tambah Level</button></div>
+            <div class="ctx-row"><button id="tsFibResetLevels" class="ctx-action">Reset ke Default</button></div>
+          </div>
+          <div class="ts-hint">Bawaan untuk gambar baru. Klik-kanan gambar yang sudah ada untuk mengubahnya satu-satu.</div>
+        </div>
+      </div>
       <div class="dtool-sep"></div>
       <button id="chartTypeBtn" class="dtool" title="Ganti tipe chart: Candlestick / Line"><span data-icon="candlestick" data-icon-size="15"></span></button>
       <div class="dtool-sep"></div>
@@ -169,7 +233,7 @@
       </div>
 
       <div id="replayFloat" class="replay-float hidden">
-        <div class="rf-handle"><span class="rf-dots" data-icon="grip" data-icon-size="13"></span><span>REPLAY</span><button id="pickStartBtn" class="rf-repick" title="Ubah titik awal replay"><span data-icon="target" data-icon-size="13"></span> Ubah Titik Awal</button><input type="date" id="rfDateInput" class="rf-date" title="Lompat ke tanggal"><button id="rfDateGoBtn" class="rf-date-go" title="Lompat titik awal replay ke tanggal ini"><span data-icon="calendar" data-icon-size="13"></span></button></div>
+        <div class="rf-handle"><span class="rf-dots" data-icon="grip" data-icon-size="13"></span><span>REPLAY</span><button id="pickStartBtn" class="rf-repick" title="Ubah titik awal replay"><span data-icon="target" data-icon-size="13"></span> Ubah Titik Awal</button><input type="date" id="rfDateInput" class="rf-date" title="Lompat ke tanggal"><button id="rfDateGoBtn" class="rf-date-go" title="Lompat titik awal replay ke tanggal ini"><span data-icon="calendar" data-icon-size="13"></span></button><button id="rfMinimizeBtn" class="rf-min-btn" title="Perkecil panel replay"><span data-icon="chevrondown" data-icon-size="13"></span></button></div>
         <div class="rf-body">
           <button class="rbtn" id="stepBackBtn" title="Mundur 1 candle"><span data-icon="skipback"></span></button>
           <button class="rbtn" id="playBtn" title="Play/Pause"><span data-icon="play"></span></button>
@@ -300,17 +364,23 @@
           <div class="bt-pip-note" id="btPipNote">poin — dari 0 trade</div>
 
           <div class="bt-insight hidden" id="btInsight"></div>
-          <button id="btDownloadBtn" class="mini-btn"><span data-icon="download" data-icon-size="13"></span> Unduh Kartu Rekap</button>
+          <div class="bt-cloud-actions">
+            <button id="btDownloadBtn" class="mini-btn"><span data-icon="download" data-icon-size="13"></span> Unduh Kartu Rekap</button>
+            <button id="btSaveCloudBtn" class="mini-btn"><span data-icon="cloud" data-icon-size="13"></span> Simpan ke Cloud</button>
+          </div>
+          <div id="btCloudSaveStatus" class="modal-status"></div>
           <div class="ticket-hint">Trade replay dicatat terpisah dari trade live — hasil latihan di masa lalu tidak ikut menghitung win rate uji maju.</div>
 
           <div class="bt-subtabs">
             <button class="bt-subtab active" data-bt="posisi">Posisi <span id="btPosCount">0</span></button>
             <button class="bt-subtab" data-bt="riwayat">Riwayat <span id="btHistCount">0</span></button>
+            <button class="bt-subtab" data-bt="cloud">Cloud <span id="btCloudCount">0</span></button>
             <button class="bt-subtab" data-bt="atur">Atur</button>
           </div>
           <div class="bt-body">
             <div id="btPanelPosisi" class="bt-subpanel"></div>
             <div id="btPanelRiwayat" class="bt-subpanel hidden"></div>
+            <div id="btPanelCloud" class="bt-subpanel hidden"></div>
             <div id="btPanelAtur" class="bt-subpanel hidden">
               <div class="term-subhead">Akun</div>
               <div class="bt-info-row"><span>Balance</span><b id="ticketBalance">$0.00</b></div>
@@ -379,6 +449,9 @@
 
 <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="app.js" defer></script>
 </body>
 </html>
