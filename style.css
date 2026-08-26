@@ -92,18 +92,50 @@
     padding:12px 12px 10px;box-shadow:0 16px 40px rgba(0,0,0,.5);
   }
   .popover.hidden{display:none;}
-  .popover label{display:block;font-size:10px;color:var(--muted);letter-spacing:.6px;margin:8px 0 4px;text-transform:uppercase;}
+  /* Direct-child combinator only — this styles section-caption labels like
+     "SUMBER DATA" / "Hapus". Checkbox labels reused from the context-menu
+     style editor (e.g. "Perpanjang Garis") sit inside a .ctx-row wrapper,
+     so they're never a direct child here and keep their normal inline look. */
+  .popover > label{display:block;font-size:10px;color:var(--muted);letter-spacing:.6px;margin:8px 0 4px;text-transform:uppercase;}
   .popover label:first-child{margin-top:0;}
   .popover select, .popover input{
     width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
     padding:7px 8px;border-radius:6px;font-family:var(--mono);font-size:12px;outline:none;
   }
+  .popover input[type="checkbox"], .popover input[type="radio"]{width:auto;accent-color:var(--accent);}
+  .popover input[type="color"]{width:32px;height:26px;padding:2px;border:1px solid var(--border);border-radius:5px;background:var(--panel-alt);cursor:pointer;}
   .popover .price-pick-row{display:flex;gap:6px;}
   .popover .price-pick-row input{flex:1;}
   .popover .place-btn{margin-top:10px;}
 
   .settings-wrap{position:relative;flex:0 0 auto;}
   .settings-wrap .popover{left:0;right:auto;}
+
+  .auth-wrap{position:relative;flex:0 0 auto;}
+  .auth-popover{width:250px;}
+  .auth-google-btn{
+    width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:#fff;color:#3c4043;border:1px solid var(--border);border-radius:6px;
+    font-family:var(--sans);font-size:12.5px;font-weight:600;padding:9px 10px;cursor:pointer;margin-top:8px;
+  }
+  .auth-google-btn:hover{background:#f7f7f7;}
+  .auth-sep{display:flex;align-items:center;gap:8px;margin:12px 0;color:var(--muted-2);font-size:10.5px;}
+  .auth-sep::before,.auth-sep::after{content:"";flex:1;height:1px;background:var(--border);}
+  .auth-field-label{display:block;font-size:10.5px;color:var(--muted);margin:8px 0 4px;}
+  .auth-input{margin-bottom:2px;}
+  .auth-error{
+    margin-top:8px;padding:7px 9px;border-radius:6px;font-size:11.5px;line-height:1.4;
+    background:rgba(245,69,92,.12);color:var(--down);border:1px solid rgba(245,69,92,.3);
+  }
+  .auth-btn-row{display:flex;gap:8px;margin-top:12px;}
+  .auth-btn-row .place-btn{flex:1;margin-top:0;}
+  .auth-btn-row .mini-btn{flex:0 0 auto;margin-top:0;}
+  .auth-account-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px;background:var(--panel-alt);border-radius:8px;color:var(--muted);}
+  .auth-account-info{min-width:0;flex:1;}
+  .auth-account-info #authUserName{color:var(--text);font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .auth-user-email{font-size:11px;color:var(--muted-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .auth-signout-btn{width:100%;margin-top:10px;}
+  #authBtn.logged-in .uc-label{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .settings-item{width:100%;justify-content:center;margin-top:8px;}
   .settings-item:first-of-type{margin-top:0;}
 
@@ -192,6 +224,22 @@
   .dtool-sep{width:22px;height:1px;background:var(--border);margin:4px 0;}
   .trash-wrap{position:relative;}
   .trash-popover{left:calc(100% + 8px);right:auto;top:-4px;width:186px;}
+  .tool-style-wrap{position:relative;}
+  .toolstyle-popover{
+    left:calc(100% + 8px);right:auto;top:-4px;width:236px;
+    max-height:min(520px, 80vh);overflow-y:auto;
+  }
+  /* .ctx-row normally expects an outer .ctx-section to already provide the
+     12px horizontal inset (so it zeroes its own). This popover isn't wrapped
+     in .ctx-section, but IS itself padded the same way — so apply the same
+     zeroing directly, or every row double-indents and squeezes its color
+     swatch / delete button off the edge. */
+  .toolstyle-popover .ctx-row{padding:5px 0;}
+  .toolstyle-popover .ts-hint{
+    margin-top:10px;padding-top:8px;border-top:1px solid var(--border);
+    font-size:11px;line-height:1.4;color:var(--muted-2);
+  }
+  #toolStyleBtn:disabled{opacity:.4;cursor:not-allowed;}
   .mini-btn:disabled{opacity:.35;cursor:not-allowed;}
   .mini-btn:disabled:hover{color:var(--down);border-color:var(--down-dim);background:transparent;}
 
@@ -381,6 +429,30 @@
     padding:4px 7px;border-radius:6px;cursor:pointer;display:flex;align-items:center;
   }
   .rf-date-go:hover{border-color:var(--accent);color:var(--accent);}
+  .rf-min-btn{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:4px 6px;border-radius:6px;cursor:pointer;display:flex;align-items:center;
+  }
+  .rf-min-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Minimized replay panel: collapse down to just the play/pause button and
+     speed selector so it stops covering the chart, while staying one click
+     away from the full controls (scrub bar, step buttons, date jump, exit). */
+  .replay-float.rf-minimized{min-width:0;}
+  .replay-float.rf-minimized .rf-handle{padding:5px 8px;border-bottom:none;}
+  .replay-float.rf-minimized .rf-repick,
+  .replay-float.rf-minimized .rf-date,
+  .replay-float.rf-minimized .rf-date-go{display:none;}
+  .replay-float.rf-minimized .rf-body{
+    padding:4px 10px 8px;gap:8px;
+  }
+  .replay-float.rf-minimized #stepBackBtn,
+  .replay-float.rf-minimized #stepFwdBtn,
+  .replay-float.rf-minimized #scrubWrap,
+  .replay-float.rf-minimized #posText,
+  .replay-float.rf-minimized #dateText,
+  .replay-float.rf-minimized #exitReplayBtn{display:none;}
+
   .rf-body{
     padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
@@ -490,6 +562,17 @@
 .rw-del{background:transparent;border:none;color:var(--muted-2);font-size:13px;cursor:pointer;flex:0 0 auto;padding:2px 4px;}
 .rw-del:hover{color:var(--down);}
 
+/* Save-to-cloud action row + saved-backtest cards (reuses .rw-card layout) */
+.bt-cloud-actions{display:flex;gap:8px;margin-bottom:10px;}
+.bt-cloud-actions .mini-btn{flex:1;margin-top:0;}
+.bt-cloud-actions .mini-btn.saved{border-color:var(--up);color:var(--up);}
+.cloud-card{cursor:default;}
+.cloud-card .rw-sym{cursor:default;}
+.cloud-login-prompt{
+  text-align:center;padding:24px 12px;color:var(--muted);font-size:12.5px;line-height:1.6;
+}
+.cloud-login-prompt button{margin-top:10px;}
+
 /* mini market info + settings inside Atur tab */
 .bt-info-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);padding:4px 0;}
 .bt-info-row b{color:var(--text);font-family:var(--mono);}
@@ -582,10 +665,10 @@
 .fib-level-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
 .fib-level-row .fib-en{accent-color:var(--accent);cursor:pointer;flex:0 0 auto;}
 .fib-level-row input[type="number"]{
-  width:64px;flex:0 0 auto;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+  width:64px!important;flex:0 0 auto;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
   border-radius:5px;font-family:var(--mono);font-size:11px;padding:4px 6px;
 }
-.fib-level-row input[type="color"]{width:26px;height:22px;flex:0 0 auto;border:1px solid var(--border);border-radius:5px;background:none;padding:0;cursor:pointer;}
+.fib-level-row input[type="color"]{width:26px!important;height:22px;flex:0 0 auto;border:1px solid var(--border);border-radius:5px;background:none;padding:0;cursor:pointer;}
 .fib-level-row .fib-del{background:transparent;border:none;color:var(--muted-2);cursor:pointer;font-size:12px;padding:2px 5px;flex:0 0 auto;display:flex;align-items:center;}
 .fib-level-row .fib-del:hover{color:var(--down);}
 .ctx-action{
@@ -617,7 +700,7 @@
   .divider{ display:none; }
   #acctBar{ gap:10px; }
   #acctBar .aitem span{ display:none; }         /* keep just the numbers, drop "Balance"/"Equity" labels */
-  .ticon span{ display:none; }                   /* icon-only quick actions — button + title stay */
+  .ticon span:not([data-icon]){ display:none; }  /* icon-only quick actions — hide the text LABEL span, never the icon span itself */
   .ticon{ padding:7px; }
   .user-chip{ padding:6px 8px; }
   #quickOrder{ gap:5px; }
